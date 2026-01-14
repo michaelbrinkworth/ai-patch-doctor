@@ -2,6 +2,15 @@
  * Configuration management for AI Patch
  */
 
+import * as fs from 'fs';
+import * as path from 'path';
+import * as os from 'os';
+
+interface SavedConfig {
+  apiKey?: string;
+  baseUrl?: string;
+}
+
 export class Config {
   constructor(
     public baseUrl: string,
@@ -76,5 +85,74 @@ export class Config {
     }
 
     return missing.join(', ');
+  }
+}
+
+/**
+ * Load saved configuration from home directory (~/.ai-patch/config.json)
+ * Returns null if file doesn't exist or can't be read
+ */
+export function loadSavedConfig(): SavedConfig | null {
+  try {
+    const homeDir = os.homedir();
+    if (!homeDir) {
+      return null;
+    }
+
+    const configPath = path.join(homeDir, '.ai-patch', 'config.json');
+    
+    if (!fs.existsSync(configPath)) {
+      return null;
+    }
+
+    const configData = fs.readFileSync(configPath, 'utf-8');
+    const config = JSON.parse(configData);
+    
+    return {
+      apiKey: config.apiKey,
+      baseUrl: config.baseUrl
+    };
+  } catch (error) {
+    // Silently fail and return null
+    return null;
+  }
+}
+
+/**
+ * Save configuration to home directory (~/.ai-patch/config.json)
+ * Creates directory if it doesn't exist
+ * Sets permissions to 0600 on Unix systems
+ */
+export function saveConfig(config: SavedConfig): void {
+  try {
+    const homeDir = os.homedir();
+    if (!homeDir) {
+      console.error('Warning: Could not determine home directory. Config not saved.');
+      return;
+    }
+
+    const configDir = path.join(homeDir, '.ai-patch');
+    const configPath = path.join(configDir, 'config.json');
+
+    // Create directory if it doesn't exist
+    if (!fs.existsSync(configDir)) {
+      fs.mkdirSync(configDir, { recursive: true });
+    }
+
+    // Write config file
+    const configData = JSON.stringify(config, null, 2);
+    fs.writeFileSync(configPath, configData, { mode: 0o600 });
+
+    // On Unix, explicitly set permissions to 0600
+    // (writeFileSync mode option should handle this, but being explicit)
+    if (process.platform !== 'win32') {
+      try {
+        fs.chmodSync(configPath, 0o600);
+      } catch (e) {
+        // Ignore chmod errors
+      }
+    }
+  } catch (error: any) {
+    console.error(`Warning: Could not save config: ${error.message}`);
   }
 }

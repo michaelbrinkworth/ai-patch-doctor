@@ -1,7 +1,9 @@
 """Configuration management for AI Patch."""
 
 import os
-from typing import Optional, List
+import json
+from pathlib import Path
+from typing import Optional, List, Dict, Any
 from dataclasses import dataclass
 
 
@@ -87,3 +89,68 @@ class Config:
                 missing.append('OPENAI_API_KEY')
         
         return ', '.join(missing)
+
+
+def load_saved_config() -> Optional[Dict[str, Any]]:
+    """Load saved configuration from home directory (~/.ai-patch/config.json).
+    
+    Returns:
+        Dictionary with apiKey and baseUrl, or None if file doesn't exist or can't be read
+    """
+    try:
+        home_dir = Path.home()
+        config_path = home_dir / '.ai-patch' / 'config.json'
+        
+        if not config_path.exists():
+            return None
+        
+        with open(config_path, 'r') as f:
+            config_data = json.load(f)
+        
+        return {
+            'apiKey': config_data.get('apiKey'),
+            'baseUrl': config_data.get('baseUrl')
+        }
+    except Exception:
+        # Silently fail and return None
+        return None
+
+
+def save_config(api_key: Optional[str] = None, base_url: Optional[str] = None) -> None:
+    """Save configuration to home directory (~/.ai-patch/config.json).
+    
+    Creates directory if it doesn't exist.
+    Sets permissions to 0600 on Unix systems.
+    
+    Args:
+        api_key: API key to save
+        base_url: Base URL to save
+    """
+    try:
+        home_dir = Path.home()
+        config_dir = home_dir / '.ai-patch'
+        config_path = config_dir / 'config.json'
+        
+        # Create directory if it doesn't exist
+        config_dir.mkdir(parents=True, exist_ok=True)
+        
+        # Prepare config data
+        config_data = {}
+        if api_key:
+            config_data['apiKey'] = api_key
+        if base_url:
+            config_data['baseUrl'] = base_url
+        
+        # Write config file
+        with open(config_path, 'w') as f:
+            json.dump(config_data, f, indent=2)
+        
+        # On Unix, set permissions to 0600
+        if os.name != 'nt':  # Not Windows
+            try:
+                os.chmod(config_path, 0o600)
+            except Exception:
+                # Ignore chmod errors
+                pass
+    except Exception as e:
+        print(f'Warning: Could not save config: {e}')
