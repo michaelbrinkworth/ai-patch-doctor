@@ -153,6 +153,6 @@ export function saveConfig(config: SavedConfig): void {
       }
     }
   } catch (error: any) {
-    console.error(`Warning: Could not save config: ${error.message}`);
+    console.error('Warning: Could not save config.');
   }
 }

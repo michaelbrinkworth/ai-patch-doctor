@@ -92,7 +92,7 @@ def check(config: Config) -> Dict[str, Any]:
         status = 'fail'
         findings.append({
             'severity': 'error',
-            'message': f'HTTP error {e.response.status_code}: {e.response.text[:200]}'
+            'message': f'HTTP error {e.response.status_code}'
         })
     except Exception as e:
         status = 'fail'

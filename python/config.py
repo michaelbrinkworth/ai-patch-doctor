@@ -153,4 +153,5 @@ def save_config(api_key: Optional[str] = None, base_url: Optional[str] = None) -
                 # Ignore chmod errors
                 pass
     except Exception as e:
-        print(f'Warning: Could not save config: {e}')
+        print(f'Warning: Could not save config.')
+
