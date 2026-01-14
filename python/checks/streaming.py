@@ -3,7 +3,7 @@
 import time
 import httpx
 from typing import Dict, Any
-from ..config import Config
+from config import Config
 
 
 def check(config: Config) -> Dict[str, Any]:

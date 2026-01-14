@@ -12,7 +12,12 @@ from typing import Optional, Dict, Any
 import click
 
 # Import from shared code
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '../../../'))
+# Add the python directory to sys.path to import checks, report, and config
+# cli.py is in python/src/ai_patch/cli.py, we need python/ which is ../..
+python_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '../..'))
+if python_dir not in sys.path:
+    sys.path.insert(0, python_dir)
+
 from checks import streaming, retries, cost, trace
 from report import ReportGenerator
 from config import Config, load_saved_config, save_config
