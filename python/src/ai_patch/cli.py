@@ -12,7 +12,7 @@ from typing import Optional, Dict, Any
 import click
 
 # Import from shared code
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '../../../../ai-patch-shared/python'))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '../../../'))
 from checks import streaming, retries, cost, trace
 from report import ReportGenerator
 from config import Config, load_saved_config, save_config

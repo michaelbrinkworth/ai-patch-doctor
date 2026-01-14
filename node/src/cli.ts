@@ -10,12 +10,12 @@ import * as path from 'path';
 import * as readline from 'readline';
 
 // Import from shared code (relative path to ai-patch-shared)
-import { Config, loadSavedConfig, saveConfig } from '../../../ai-patch-shared/node/config';
-import { ReportGenerator } from '../../../ai-patch-shared/node/report';
-import { checkStreaming } from '../../../ai-patch-shared/node/checks/streaming';
-import { checkRetries } from '../../../ai-patch-shared/node/checks/retries';
-import { checkCost } from '../../../ai-patch-shared/node/checks/cost';
-import { checkTrace } from '../../../ai-patch-shared/node/checks/trace';
+import { Config, loadSavedConfig, saveConfig } from '../config';
+import { ReportGenerator } from '../report';
+import { checkStreaming } from '../checks/streaming';
+import { checkRetries } from '../checks/retries';
+import { checkCost } from '../checks/cost';
+import { checkTrace } from '../checks/trace';
 
 const program = new Command();
 
