@@ -42,9 +42,6 @@ env/
 .DS_Store
 Thumbs.db
 
-# Docker
-.docker/
-
 # Logs
 *.log
 logs/
@@ -64,22 +61,8 @@ test.db
 # AI Patch - generated reports
 ai-patch-reports/
 
-# Model files (large)
-*.bin
-*.pt
-*.pth
-*.onnx
-*.safetensors
-
-# Redis data
-dump.rdb
-
-# Node.js (for tests and frontend)
+# Node.js
 node_modules/
-.next/
-out/
-.vercel
-.turbo
 
 # TypeScript build outputs
 *.d.ts
@@ -93,9 +76,3 @@ node/*.js
 node/*.d.ts
 node/*.map
 !node/src/*.js
-
-# Keep package-lock.json in frontend directory
-!frontend/package-lock.json
-/.hf_cache
-.env.example
-*.db
