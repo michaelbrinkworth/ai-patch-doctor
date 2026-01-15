@@ -408,7 +408,10 @@ def save_report(report_data: Dict[str, Any]) -> Path:
     
     # Try symlink first
     try:
-        if latest_symlink.exists() or latest_symlink.is_symlink():
+        # Remove existing symlink or directory (including broken symlinks)
+        if latest_symlink.is_symlink():
+            latest_symlink.unlink()
+        elif latest_symlink.exists():
             latest_symlink.unlink()
         latest_symlink.symlink_to(timestamp, target_is_directory=True)
     except (OSError, NotImplementedError):

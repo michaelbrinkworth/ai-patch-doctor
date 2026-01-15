@@ -513,8 +513,12 @@ function saveReport(reportData: any): string {
   
   // Try symlink first
   try {
-    if (fs.existsSync(latestSymlink) || fs.lstatSync(latestSymlink).isSymbolicLink()) {
+    // Check if symlink or directory exists and remove it
+    try {
+      const stats = fs.lstatSync(latestSymlink);
       fs.unlinkSync(latestSymlink);
+    } catch (e) {
+      // Doesn't exist, that's fine
     }
     fs.symlinkSync(timestamp, latestSymlink, 'dir');
   } catch (e) {
