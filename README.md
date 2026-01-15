@@ -1,62 +1,480 @@
-# AI Patch Doctor
+# AI Patch Doctor 🔍⚕️
 
-**The CLI tool that diagnoses and fixes AI API issues**
+**The open-source CLI tool for diagnosing and fixing AI API issues**
+
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Tests](https://img.shields.io/badge/tests-passing-brightgreen.svg)](./ai-patch.test.js)
+[![Python](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
+[![Node](https://img.shields.io/badge/node-14+-green.svg)](https://nodejs.org/)
+
+> Run the doctor. Fix your AI API issues in under 60 seconds.
+
+## 🚀 Quick Start
 
 ```bash
 # Python
 pipx run ai-patch doctor
 
-# Node
+# Node.js
 npx ai-patch doctor
 ```
 
-## What is AI Patch Doctor?
+That's it! The doctor will interactively diagnose your AI API setup and generate a detailed report with actionable fixes.
 
-AI Patch Doctor is a dual-language (Python + Node.js) CLI tool for diagnosing and fixing AI API issues. It follows the natural CLI mental model of tools like `brew doctor`, `kubectl doctor`, and `terraform plan`.
+---
 
-## Features
+## 📋 Table of Contents
 
-- ✅ **4 Wedge Checks**: streaming, retries, cost, traceability
-- ✅ **Interactive Doctor**: 2-question flow with auto-detection
-- ✅ **Safe by Default**: Dry-run mode, reversible changes
-- ✅ **Shared Code Architecture**: Zero duplication between Python and Node
-- ✅ **100% Open Source**: No proprietary code, MIT licensed
+- [What is AI Patch Doctor?](#-what-is-ai-patch-doctor)
+- [Features](#-features)
+- [Installation](#-installation)
+- [Usage](#-usage)
+- [The 4 Wedge Checks](#-the-4-wedge-checks)
+- [Supported Providers](#-supported-providers)
+- [Architecture](#-architecture)
+- [Testing](#-testing)
+- [Contributing](#-contributing)
+- [License](#-license)
 
-## Quick Start
+---
 
-### Python
+## 🤔 What is AI Patch Doctor?
+
+AI Patch Doctor is a dual-language (Python + Node.js) command-line tool that helps developers **diagnose and fix common AI API issues** quickly and efficiently. Inspired by tools like `brew doctor` and `kubectl doctor`, it provides an interactive diagnostic experience that:
+
+- 🔍 **Detects configuration issues** automatically
+- ⚡ **Identifies performance bottlenecks** (streaming, timeouts, retries)
+- 💰 **Prevents cost overruns** (token limits, runaway loops)
+- 📊 **Ensures proper traceability** (request IDs, correlation)
+
+Perfect for:
+- Debugging production AI API failures
+- Validating development setups
+- Optimizing API call patterns
+- Ensuring best practices in AI integrations
+
+---
+
+## ✨ Features
+
+### 🎯 Four Core Diagnostic Checks
+
+1. **Streaming Check** - Diagnoses SSE stalls, buffering issues, and partial output problems
+2. **Retries Check** - Identifies retry storms, rate limit issues, and backoff problems
+3. **Cost Check** - Detects token spikes, unbounded requests, and cost optimization opportunities
+4. **Traceability Check** - Validates request IDs, correlation tracking, and duplicate detection
+
+### 🔧 Developer-Friendly
+
+- **Interactive Mode** - Simple 2-question flow to get started
+- **Auto-Detection** - Automatically detects your API configuration from environment variables
+- **Safe by Default** - Dry-run mode prevents accidental changes
+- **Detailed Reports** - JSON and Markdown reports with specific fix recommendations
+- **Zero Duplication** - Shared codebase ensures Python and Node have identical behavior
+
+### 🌐 Universal Compatibility
+
+- Works with **OpenAI**, **Anthropic Claude**, **Google Gemini**, and any OpenAI-compatible API
+- Supports gateways like **LiteLLM**, **Portkey**, and **Helicone**
+- Cross-platform: **Linux**, **macOS**, **Windows**
+
+---
+
+## 📦 Installation
+
+### Python (pipx recommended)
 
 ```bash
-cd ai-patch/python
+# Using pipx (recommended)
+pipx install ai-patch
+
+# Or using pip
+pip install ai-patch
+
+# From source
+git clone https://github.com/michaelbrinkworth/ai-patch-doctor.git
+cd ai-patch-doctor/python
 pip install -e .
+```
+
+### Node.js
+
+```bash
+# No installation needed - use npx
+npx ai-patch doctor
+
+# Or install globally
+npm install -g ai-patch
+
+# From source
+git clone https://github.com/michaelbrinkworth/ai-patch-doctor.git
+cd ai-patch-doctor/node
+npm install
+npm run build
+```
+
+---
+
+## 💻 Usage
+
+### Interactive Mode (Recommended)
+
+Simply run the doctor command and answer 2 quick questions:
+
+```bash
 ai-patch doctor
 ```
 
-### Node
+**Example session:**
 
-```bash
-cd ai-patch/node
-npm install
-npm run build
-npx ai-patch doctor
+```
+🔍 AI Patch Doctor - Interactive Mode
+
+What's failing?
+  1. streaming / SSE stalls / partial output
+  2. retries / 429 / rate-limit chaos
+  3. cost spikes
+  4. traceability (request IDs, duplicates)
+  5. prod-only issues (all checks)
+Select: 1
+
+What do you use?
+  1. openai-compatible (default)
+  2. anthropic
+  3. gemini
+Select: 1
+
+✓ Detected: https://api.openai.com
+✓ Provider: openai-compatible
+
+🔬 Running streaming checks...
+
+📊 Report saved: ai-patch-reports/20260115-123456/
+
+⚠️ Issues Found:
+  1. SSE buffering detected (nginx proxy)
+  2. Missing X-Accel-Buffering header
+
+💡 Suggested Fix:
+  Add X-Accel-Buffering: no to proxy config
 ```
 
-## Documentation
-
-See [AI_PATCH_DOCTOR_COMPLETE.md](./AI_PATCH_DOCTOR_COMPLETE.md) for complete documentation.
-
-## Testing
+### Command-Line Options
 
 ```bash
+# Run specific check
+ai-patch doctor --target=streaming
+
+# Run all checks
+ai-patch doctor --target=all
+
+# Apply suggested fixes (safe mode - requires confirmation)
+ai-patch apply --safe
+
+# Test a specific component
+ai-patch test --target=retries
+
+# Share report (redacted for privacy)
+ai-patch share --redact
+
+# Revert applied changes
+ai-patch revert
+```
+
+---
+
+## 🔬 The 4 Wedge Checks
+
+### 1. Streaming Check
+
+**Diagnoses:** Server-Sent Events (SSE) stalls, buffering issues, chunk gaps, slow time-to-first-byte (TTFB)
+
+**Common Issues Detected:**
+- Nginx/Envoy proxy buffering blocking streaming responses
+- Client-side timeout issues
+- gzip/compression interfering with streaming
+- Missing HTTP headers for streaming
+
+**Example Fix:**
+```nginx
+# Add to nginx config
+proxy_buffering off;
+proxy_set_header X-Accel-Buffering no;
+```
+
+### 2. Retries Check
+
+**Diagnoses:** Rate limit (429) storms, retry chaos, exponential backoff issues
+
+**Common Issues Detected:**
+- Missing or improper retry-after header handling
+- Linear retry instead of exponential backoff
+- Retrying mid-stream (causing duplicate charges)
+- No retry cap (infinite retry loops)
+
+**Example Fix:**
+```python
+# Proper retry logic
+import time
+max_retries = 3
+for attempt in range(max_retries):
+    try:
+        response = api_call()
+        break
+    except RateLimitError as e:
+        if attempt == max_retries - 1:
+            raise
+        wait_time = 2 ** attempt  # Exponential backoff
+        time.sleep(wait_time)
+```
+
+### 3. Cost Check
+
+**Diagnoses:** Token usage spikes, runaway costs, missing guardrails
+
+**Common Issues Detected:**
+- No `max_tokens` limit set
+- Unbounded prompt sizes
+- Tool/function calling loops
+- Missing cost estimation before calls
+
+**Example Fix:**
+```python
+# Add token limits
+response = openai.ChatCompletion.create(
+    model="gpt-4",
+    messages=[...],
+    max_tokens=2048,  # Prevent runaway generation
+    temperature=0.7
+)
+```
+
+### 4. Traceability Check
+
+**Diagnoses:** Missing request IDs, duplicate requests, correlation gaps
+
+**Common Issues Detected:**
+- No idempotency keys
+- Missing request ID tracking
+- No correlation ID propagation
+- Duplicate request detection disabled
+
+**Example Fix:**
+```python
+# Add idempotency key
+import uuid
+response = openai.ChatCompletion.create(
+    model="gpt-4",
+    messages=[...],
+    headers={
+        "Idempotency-Key": str(uuid.uuid4())
+    }
+)
+```
+
+---
+
+## 🌍 Supported Providers
+
+### OpenAI-Compatible (Default)
+
+Works with any OpenAI-compatible API:
+- OpenAI API
+- Azure OpenAI
+- Together AI
+- Anyscale Endpoints
+- Fireworks AI
+- OpenRouter
+- Custom OpenAI-compatible proxies
+
+**Auto-detected from:** `OPENAI_API_KEY`, `OPENAI_BASE_URL`
+
+### Anthropic
+
+Direct support for Claude API
+- Claude 3 (Opus, Sonnet, Haiku)
+- Claude 2.1, 2.0
+- Claude Instant
+
+**Auto-detected from:** `ANTHROPIC_API_KEY`
+
+### Google Gemini
+
+Direct support for Gemini API
+- Gemini Pro
+- Gemini Ultra
+
+**Auto-detected from:** `GEMINI_API_KEY`
+
+### Gateways
+
+Compatible with popular AI gateways:
+- LiteLLM
+- Portkey
+- Helicone
+- Custom proxies
+
+---
+
+## 🏗️ Architecture
+
+AI Patch Doctor uses a unique **shared code architecture** to ensure zero duplication between Python and Node implementations:
+
+```
+ai-patch-doctor/
+├── python/                   # Python CLI + shared modules
+│   ├── src/ai_patch/        # CLI wrapper (thin)
+│   │   ├── cli.py           # Main CLI entry point
+│   │   ├── __main__.py      # Python entry point
+│   │   └── __init__.py      # Package init
+│   ├── checks/              # 4 wedge checks (shared)
+│   │   ├── streaming.py     # SSE diagnostics
+│   │   ├── retries.py       # Retry logic diagnostics
+│   │   ├── cost.py          # Cost optimization
+│   │   └── trace.py         # Request tracing
+│   ├── config.py            # Config management
+│   ├── report.py            # Report generation
+│   ├── tests/               # Python tests
+│   └── pyproject.toml       # Python package config
+│
+├── node/                     # Node CLI + shared modules
+│   ├── src/                 # CLI wrapper (thin)
+│   │   └── cli.ts           # Main CLI entry point
+│   ├── checks/              # 4 wedge checks (shared)
+│   │   ├── streaming.ts     # SSE diagnostics
+│   │   ├── retries.ts       # Retry logic diagnostics
+│   │   ├── cost.ts          # Cost optimization
+│   │   └── trace.ts         # Request tracing
+│   ├── config.ts            # Config management
+│   ├── report.ts            # Report generation
+│   ├── package.json         # Node package config
+│   └── tsconfig.json        # TypeScript config
+│
+├── shared/                   # Shared schema
+│   └── report-schema.json   # Report format specification
+│
+├── ai-patch.test.js         # Jest test suite (45 tests)
+├── validate.py              # Package validation script
+├── README.md                # This file
+└── LICENSE                  # MIT License
+```
+
+**Key Principles:**
+1. **Shared Logic** - All diagnostic logic in `python/` and `node/` directories
+2. **Thin CLIs** - CLI wrappers in `src/` just handle I/O and user interaction
+3. **Identical UX** - Same commands, same output, same behavior across languages
+4. **No Duplication** - Each check implemented once per language, imported by CLI
+
+---
+
+## 🧪 Testing
+
+### Run All Tests
+
+```bash
+# Jest tests (Node)
 npm install
 npm test
+
+# Python tests
+cd python
+python tests/test_cli.py
+
+# Validation script
+python validate.py
 ```
 
-## License
+### Test Coverage
 
-MIT License - See LICENSE file for details.
+**Jest Suite** (45 tests):
+- ✅ Shared code structure validation
+- ✅ No code duplication checks
+- ✅ CLI imports verification
+- ✅ Package structure validation
+- ✅ Documentation completeness
 
-## About
+**Python Suite** (4 tests):
+- ✅ Config auto-detection
+- ✅ Report generation
+- ✅ Module imports
+- ✅ Config validation
 
-This is the open source CLI implementation. For the full AI API observability platform with receipts, billing, and hosted compute, see [AI Badgr](https://aibadgr.com).
+**Validation Script** (4 checks):
+- ✅ Schema validation (report-schema.json)
+- ✅ Python package structure
+- ✅ Node package structure
+- ✅ Command consistency
 
+---
+
+## 🤝 Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.
+
+### Development Setup
+
+```bash
+# Clone the repo
+git clone https://github.com/michaelbrinkworth/ai-patch-doctor.git
+cd ai-patch-doctor
+
+# Install Python dependencies
+cd python
+pip install -e .[dev]
+
+# Install Node dependencies
+cd ../node
+npm install
+
+# Run tests
+npm test
+python tests/test_cli.py
+python validate.py
+```
+
+### Contribution Guidelines
+
+1. **Keep it minimal** - Make the smallest possible changes
+2. **Test everything** - All tests must pass
+3. **Match the style** - Follow existing code conventions
+4. **Update docs** - Keep README and comments current
+5. **One feature per PR** - Keep pull requests focused
+
+---
+
+## 📄 License
+
+MIT License - see [LICENSE](./LICENSE) file for details.
+
+Copyright (c) 2026 AI Patch Doctor Contributors
+
+---
+
+## 🙏 Acknowledgments
+
+- Inspired by `brew doctor`, `kubectl doctor`, and similar diagnostic tools
+- Built with ❤️ for the AI developer community
+- Special thanks to all contributors
+
+---
+
+## 🔗 Links
+
+- **GitHub Repository:** [github.com/michaelbrinkworth/ai-patch-doctor](https://github.com/michaelbrinkworth/ai-patch-doctor)
+- **Issue Tracker:** [github.com/michaelbrinkworth/ai-patch-doctor/issues](https://github.com/michaelbrinkworth/ai-patch-doctor/issues)
+- **PyPI Package:** `pip install ai-patch` (coming soon)
+- **npm Package:** `npm install -g ai-patch` (coming soon)
+
+---
+
+## 📊 SEO Keywords
+
+AI API debugging, OpenAI troubleshooting, Claude API diagnostics, streaming SSE issues, rate limit handling, AI cost optimization, request tracing, API monitoring, AI observability, ChatGPT debugging, LLM integration testing, API doctor tool, AI developer tools, Python CLI tool, Node.js diagnostics
+
+---
+
+**Run the doctor. Fix your AI API. ⚕️**
+
+```bash
+npx ai-patch doctor
+```
