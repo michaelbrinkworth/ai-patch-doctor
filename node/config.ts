@@ -9,6 +9,7 @@ import * as os from 'os';
 interface SavedConfig {
   apiKey?: string;
   baseUrl?: string;
+  provider?: string;
 }
 
 export class Config {
@@ -110,7 +111,8 @@ export function loadSavedConfig(): SavedConfig | null {
     
     return {
       apiKey: config.apiKey,
-      baseUrl: config.baseUrl
+      baseUrl: config.baseUrl,
+      provider: config.provider
     };
   } catch (error) {
     // Silently fail and return null
@@ -139,9 +141,31 @@ export function saveConfig(config: SavedConfig): void {
       fs.mkdirSync(configDir, { recursive: true });
     }
 
+    // Load existing config if it exists
+    let configData: any = {};
+    if (fs.existsSync(configPath)) {
+      try {
+        const existingData = fs.readFileSync(configPath, 'utf-8');
+        configData = JSON.parse(existingData);
+      } catch (e) {
+        // Ignore parse errors
+      }
+    }
+
+    // Update with new values
+    if (config.apiKey !== undefined) {
+      configData.apiKey = config.apiKey;
+    }
+    if (config.baseUrl !== undefined) {
+      configData.baseUrl = config.baseUrl;
+    }
+    if (config.provider !== undefined) {
+      configData.provider = config.provider;
+    }
+
     // Write config file
-    const configData = JSON.stringify(config, null, 2);
-    fs.writeFileSync(configPath, configData, { mode: 0o600 });
+    const configDataStr = JSON.stringify(configData, null, 2);
+    fs.writeFileSync(configPath, configDataStr, { mode: 0o600 });
 
     // On Unix, explicitly set permissions to 0600
     // (writeFileSync mode option should handle this, but being explicit)

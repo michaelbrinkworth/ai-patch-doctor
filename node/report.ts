@@ -41,6 +41,13 @@ export class ReportGenerator {
     // Determine next step
     const nextStep = this.getNextStep(status, checks);
 
+    // Calculate estimated cost if cost check ran
+    let estimatedCost = null;
+    if (checks.cost) {
+      const costMetrics = checks.cost.metrics || {};
+      estimatedCost = costMetrics.estimated_cost_usd || null;
+    }
+
     return {
       version: ReportGenerator.VERSION,
       timestamp: new Date().toISOString(),
@@ -48,10 +55,16 @@ export class ReportGenerator {
       provider,
       base_url: baseUrl,
       checks,
+      receipt_metadata: {
+        receipt_format: 'badgr-compatible',
+        execution_authority: 'ai-patch',
+        billing_authority: 'customer'
+      },
       summary: {
         status,
         next_step: nextStep,
         duration_seconds: Math.round(duration * 100) / 100,
+        estimated_cost_usd: estimatedCost
       },
     };
   }

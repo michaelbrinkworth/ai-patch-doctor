@@ -4,7 +4,7 @@
   "description": "Fix-first incident patcher for AI API issues - diagnose streaming, retries, cost, and traceability problems",
   "main": "dist/index.js",
   "bin": {
-    "ai-patch": "dist/cli.js"
+    "ai-patch": "dist/src/cli.js"
   },
   "scripts": {
     "build": "tsc",
