@@ -28,7 +28,16 @@ npm install
 
 **Python:**
 ```bash
-pipx run ai-patch-doctor doctor
+# Install first (one time)
+pipx install ai-patch-doctor
+
+# Then run
+ai-patch doctor
+```
+
+Or run directly without installing:
+```bash
+python -m ai_patch doctor
 ```
 
 **Node:**

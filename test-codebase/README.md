@@ -30,7 +30,8 @@ npm install openai @anthropic-ai/sdk
 3. Run AI Patch Doctor:
 ```bash
 # Python
-pipx run ai-patch-doctor doctor
+ai-patch doctor
+# Or without installing: python -m ai_patch doctor
 
 # Node
 npx ai-patch doctor
