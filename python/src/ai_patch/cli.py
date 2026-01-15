@@ -509,6 +509,13 @@ def print_diagnosis(report_data: Dict[str, Any]) -> None:
     else:
         click.echo("\n✓ No issues detected")
     
+    # Capability boundary note (when status != success)
+    if status != 'success':
+        click.echo("\nNote:")
+        click.echo("These findings are based on synthetic probes.")
+        click.echo("Real incidents often differ due to concurrency, retries, and partial streaming.")
+        click.echo("This report format is compatible with Badgr receipts, which capture real traffic.")
+    
     # Next step
     click.echo(f"\n→ {summary['next_step']}")
     

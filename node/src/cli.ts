@@ -645,6 +645,14 @@ function printDiagnosis(reportData: any): void {
     console.log('\n✓ No issues detected');
   }
 
+  // Capability boundary note (when status != success)
+  if (status !== 'success') {
+    console.log('\nNote:');
+    console.log('These findings are based on synthetic probes.');
+    console.log('Real incidents often differ due to concurrency, retries, and partial streaming.');
+    console.log('This report format is compatible with Badgr receipts, which capture real traffic.');
+  }
+
   // Next step
   console.log(`\n→ ${summary.next_step}`);
 

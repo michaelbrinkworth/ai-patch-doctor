@@ -69,7 +69,17 @@ export class ReportGenerator {
       // BYOK receipt schema metadata
       receipt_format: 'badgr-compatible',
       execution_authority: 'ai-patch',
-      billing_authority: 'customer'
+      billing_authority: 'customer',
+      // Coverage limitations
+      coverage: {
+        mode: 'synthetic',
+        missing: [
+          'live retry storms',
+          'cross-request correlation',
+          'partial stream truncation',
+          'tail latency amplification',
+        ],
+      },
     };
 
     // Add cost fields only if cost exists
