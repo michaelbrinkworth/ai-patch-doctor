@@ -146,7 +146,13 @@ export function saveConfig(config: SavedConfig): void {
     if (fs.existsSync(configPath)) {
       try {
         const existingData = fs.readFileSync(configPath, 'utf-8');
-        configData = JSON.parse(existingData) as SavedConfig;
+        const parsed = JSON.parse(existingData);
+        // Only copy known fields to ensure type safety
+        configData = {
+          apiKey: parsed.apiKey,
+          baseUrl: parsed.baseUrl,
+          provider: parsed.provider
+        };
       } catch (e) {
         // Ignore parse errors
       }

@@ -598,12 +598,13 @@ async function runChecks(target: string, config: Config, provider: string): Prom
 }
 
 function saveReport(reportData: any): string {
-  const timestamp = new Date()
-    .toISOString()
+  // Format: YYYYMMDD-HHMMSS
+  const now = new Date();
+  const timestamp = now.toISOString()
     .replace(/T/, '-')
     .replace(/:/g, '')
-    .replace(/\..+/, '')
-    .slice(0, 15); // Format: YYYYMMDD-HHMMSS
+    .replace(/\.\d{3}Z$/, '')
+    .substring(0, 15);
   const reportDir = path.join(process.cwd(), 'ai-patch-reports', timestamp);
 
   fs.mkdirSync(reportDir, { recursive: true });
@@ -625,13 +626,12 @@ function saveReport(reportData: any): string {
 
   // Try symlink
   try {
-    if (fs.existsSync(latestLink) && fs.lstatSync(latestLink).isSymbolicLink()) {
-      fs.unlinkSync(latestLink);
-    } else if (fs.existsSync(latestLink)) {
+    // Remove existing file/symlink if present
+    if (fs.existsSync(latestLink)) {
       fs.unlinkSync(latestLink);
     }
   } catch (e) {
-    // Ignore errors, file might not exist
+    // Ignore errors, file might not exist or symlink is broken
   }
 
   try {
