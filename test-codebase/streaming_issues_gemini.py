@@ -7,10 +7,16 @@ Streaming Issues (Gemini) - Problems AI Patch Doctor will detect:
 """
 
 import os
+import sys
 import google.generativeai as genai
 
 # Initialize client
-genai.configure(api_key=os.getenv('GEMINI_API_KEY'))
+api_key = os.getenv('GEMINI_API_KEY')
+if not api_key:
+    print("Error: GEMINI_API_KEY environment variable not set", file=sys.stderr)
+    sys.exit(1)
+
+genai.configure(api_key=api_key)
 
 def streaming_chat_with_issues():
     """Streaming chat with Gemini - intentional issues."""

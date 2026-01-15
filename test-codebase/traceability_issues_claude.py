@@ -8,9 +8,15 @@ Traceability Issues (Claude/Anthropic) - Problems AI Patch Doctor will detect:
 """
 
 import os
+import sys
 from anthropic import Anthropic
 
-client = Anthropic(api_key=os.getenv('ANTHROPIC_API_KEY'))
+api_key = os.getenv('ANTHROPIC_API_KEY')
+if not api_key:
+    print("Error: ANTHROPIC_API_KEY environment variable not set", file=sys.stderr)
+    sys.exit(1)
+
+client = Anthropic(api_key=api_key)
 
 def chat_without_traceability():
     """Chat with Claude without proper traceability."""

@@ -9,8 +9,14 @@
 
 const Anthropic = require('@anthropic-ai/sdk');
 
+const apiKey = process.env.ANTHROPIC_API_KEY;
+if (!apiKey) {
+  console.error('Error: ANTHROPIC_API_KEY environment variable not set');
+  process.exit(1);
+}
+
 const client = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY
+  apiKey: apiKey
 });
 
 async function chatWithoutTraceability() {

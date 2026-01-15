@@ -1,5 +1,9 @@
 #!/bin/bash
 # Comprehensive test script for AI Patch Doctor (Python and Node)
+#
+# Usage:
+#   ./test_doctor.sh              - Run tests normally
+#   VERBOSE=1 ./test_doctor.sh    - Show build errors when they occur
 
 set -e  # Exit on error
 
@@ -108,12 +112,17 @@ if command -v node &> /dev/null; then
     NODE_CMD="node ../node/dist/src/cli.js"
     if [ ! -f "../node/dist/src/cli.js" ]; then
         log_info "Node CLI not built, attempting to build..."
-        if cd ../node && npm install && npm run build 2>/dev/null; then
-            cd "$TEST_DIR"
+        BUILD_OUTPUT=$(cd ../node && npm install && npm run build 2>&1)
+        BUILD_STATUS=$?
+        cd "$TEST_DIR"
+        
+        if [ $BUILD_STATUS -eq 0 ]; then
             log_pass "Node CLI built successfully"
         else
-            cd "$TEST_DIR"
             log_info "Node CLI build failed - skipping Node tests"
+            if [ -n "$VERBOSE" ]; then
+                echo "$BUILD_OUTPUT"
+            fi
             NODE_CMD=""
         fi
     else
