@@ -171,28 +171,24 @@ describe('AI Patch Doctor - Code Reuse & Structure', () => {
   });
 
   describe('Documentation', () => {
-    test('Single comprehensive documentation file exists', () => {
-      const docPath = path.join(__dirname, 'AI_PATCH_DOCTOR_COMPLETE.md');
+    test('README.md exists', () => {
+      const docPath = path.join(__dirname, 'README.md');
       expect(fs.existsSync(docPath)).toBe(true);
     });
 
-    test('Old documentation files removed', () => {
-      const oldDoc1 = path.join(__dirname, 'AI_PATCH_DOCTOR.md');
-      const oldDoc2 = path.join(__dirname, 'LAUNCH_DOCTOR.md');
+    test('Old deployment guide removed', () => {
+      const oldDoc1 = path.join(__dirname, 'DEPLOYMENT_GUIDE.md');
       expect(fs.existsSync(oldDoc1)).toBe(false);
-      expect(fs.existsSync(oldDoc2)).toBe(false);
     });
 
-    test('Comprehensive doc contains key sections', () => {
-      const docPath = path.join(__dirname, 'AI_PATCH_DOCTOR_COMPLETE.md');
+    test('README contains key sections', () => {
+      const docPath = path.join(__dirname, 'README.md');
       const content = fs.readFileSync(docPath, 'utf8');
       expect(content).toContain('Quick Start');
       expect(content).toContain('Installation');
       expect(content).toContain('Architecture');
       expect(content).toContain('The 4 Wedge Checks');
-      expect(content).toContain('Publishing');
-      expect(content).toContain('Launch Guide');
-      expect(content).toContain('Troubleshooting');
+      expect(content).toContain('Testing');
     });
   });
 

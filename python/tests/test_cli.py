@@ -9,7 +9,7 @@ from pathlib import Path
 # Add python directory to path to import config, report, and checks
 python_dir = Path(__file__).parent.parent
 if str(python_dir) not in sys.path:
-    sys.path.insert(0, str(python_dir))
+    sys.path.append(str(python_dir))
 
 from config import Config
 from report import ReportGenerator

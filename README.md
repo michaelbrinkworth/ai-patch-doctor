@@ -467,12 +467,6 @@ Copyright (c) 2026 AI Patch Doctor Contributors
 
 ---
 
-## 📊 SEO Keywords
-
-AI API debugging, OpenAI troubleshooting, Claude API diagnostics, streaming SSE issues, rate limit handling, AI cost optimization, request tracing, API monitoring, AI observability, ChatGPT debugging, LLM integration testing, API doctor tool, AI developer tools, Python CLI tool, Node.js diagnostics
-
----
-
 **Run the doctor. Fix your AI API. ⚕️**
 
 ```bash

@@ -45,9 +45,9 @@ def validate_python_structure():
         "src/ai_patch/__init__.py",
         "src/ai_patch/__main__.py",
         "src/ai_patch/cli.py",
-        "config.py",  # In python/ root, not in src/
-        "report.py",  # In python/ root, not in src/
-        "checks/__init__.py",  # In python/ root, not in src/
+        "config.py",
+        "report.py",
+        "checks/__init__.py",
         "checks/streaming.py",
         "checks/retries.py",
         "checks/cost.py",
@@ -81,9 +81,9 @@ def validate_node_structure():
         "package.json",
         "tsconfig.json",
         "src/cli.ts",
-        "config.ts",  # In node/ root, not in src/
-        "report.ts",  # In node/ root, not in src/
-        "checks/streaming.ts",  # In node/ root, not in src/
+        "config.ts",
+        "report.ts",
+        "checks/streaming.ts",
         "checks/retries.ts",
         "checks/cost.ts",
         "checks/trace.ts"
