@@ -41,7 +41,20 @@ export class ReportGenerator {
     // Determine next step
     const nextStep = this.getNextStep(status, checks);
 
-    return {
+    // Calculate estimated cost if available
+    let estimatedCost: number | null = null;
+    for (const checkName in checks) {
+      const metrics = checks[checkName].metrics || {};
+      if ('estimated_cost_usd' in metrics) {
+        if (estimatedCost === null) {
+          estimatedCost = 0;
+        }
+        estimatedCost += metrics.estimated_cost_usd || 0;
+      }
+    }
+
+    // Build report
+    const report: any = {
       version: ReportGenerator.VERSION,
       timestamp: new Date().toISOString(),
       target,
@@ -53,7 +66,19 @@ export class ReportGenerator {
         next_step: nextStep,
         duration_seconds: Math.round(duration * 100) / 100,
       },
+      // BYOK receipt schema metadata
+      receipt_format: 'badgr-compatible',
+      execution_authority: 'ai-patch',
+      billing_authority: 'customer'
     };
+
+    // Add cost fields only if cost exists
+    if (estimatedCost !== null) {
+      report.estimated_cost_usd = Math.round(estimatedCost * 1000000) / 1000000;
+      report.cost_source = 'model_pricing_table';
+    }
+
+    return report;
   }
 
   generateMarkdown(report: any): string {

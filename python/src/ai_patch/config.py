@@ -3,7 +3,7 @@
 import os
 import json
 from pathlib import Path
-from typing import Optional, List, Dict, Any
+from typing import Optional, List, Dict, Any, Tuple
 from dataclasses import dataclass
 
 
@@ -116,7 +116,11 @@ def load_saved_config() -> Optional[Dict[str, Any]]:
         return None
 
 
-def save_config(api_key: Optional[str] = None, base_url: Optional[str] = None) -> None:
+def save_config(
+    api_key: Optional[str] = None, 
+    base_url: Optional[str] = None,
+    provider: Optional[str] = None
+) -> List[str]:
     """Save configuration to home directory (~/.ai-patch/config.json).
     
     Creates directory if it doesn't exist.
@@ -125,6 +129,10 @@ def save_config(api_key: Optional[str] = None, base_url: Optional[str] = None) -
     Args:
         api_key: API key to save
         base_url: Base URL to save
+        provider: Provider to save
+        
+    Returns:
+        List of fields that were saved
     """
     try:
         home_dir = Path.home()
@@ -136,10 +144,17 @@ def save_config(api_key: Optional[str] = None, base_url: Optional[str] = None) -
         
         # Prepare config data
         config_data = {}
+        saved_fields = []
+        
         if api_key:
             config_data['apiKey'] = api_key
+            saved_fields.append('api_key')
         if base_url:
             config_data['baseUrl'] = base_url
+            saved_fields.append('base_url')
+        if provider:
+            config_data['provider'] = provider
+            saved_fields.append('provider')
         
         # Write config file
         with open(config_path, 'w') as f:
@@ -152,6 +167,95 @@ def save_config(api_key: Optional[str] = None, base_url: Optional[str] = None) -
             except Exception:
                 # Ignore chmod errors
                 pass
+        
+        return saved_fields
     except Exception as e:
         print(f'Warning: Could not save config.')
+        return []
+
+
+def auto_detect_provider(
+    provider_flag: Optional[str] = None,
+    can_prompt: bool = False
+) -> Tuple[str, List[str], Optional[str], Optional[str]]:
+    """Auto-detect provider from environment variables.
+    
+    Args:
+        provider_flag: Explicit provider from --provider flag
+        can_prompt: Whether prompting is allowed (for validation)
+        
+    Returns:
+        Tuple of (provider, detected_keys_list, selected_key_name, warning_message)
+    """
+    # Define provider order and their corresponding env var names
+    provider_keys = {
+        'openai-compatible': 'OPENAI_API_KEY',
+        'anthropic': 'ANTHROPIC_API_KEY',
+        'gemini': 'GEMINI_API_KEY'
+    }
+    
+    # Check which keys exist in environment
+    detected_keys = []
+    for prov, key_name in provider_keys.items():
+        if os.getenv(key_name):
+            detected_keys.append(prov)
+    
+    warning_message = None
+    selected_provider = None
+    selected_key_name = None
+    
+    # If --provider is provided, validate it
+    if provider_flag:
+        if provider_flag not in provider_keys:
+            # Invalid provider
+            return (provider_flag, detected_keys, None, f"Invalid provider: {provider_flag}")
+        
+        # Check if provider has key in env
+        if provider_flag not in detected_keys:
+            if can_prompt:
+                # Allow user to paste key interactively
+                warning_message = f"{provider_keys[provider_flag]} not found in environment"
+            else:
+                return (provider_flag, detected_keys, None, 
+                       f"Provider '{provider_flag}' specified but {provider_keys[provider_flag]} not found")
+        
+        selected_provider = provider_flag
+        selected_key_name = provider_keys.get(provider_flag)
+    
+    # If exactly one key exists, use it
+    elif len(detected_keys) == 1:
+        selected_provider = detected_keys[0]
+        selected_key_name = provider_keys[selected_provider]
+    
+    # If multiple keys exist, use heuristics
+    elif len(detected_keys) > 1:
+        # Prefer provider with custom base URL env var set
+        for prov in detected_keys:
+            if prov == 'openai-compatible' and os.getenv('OPENAI_BASE_URL'):
+                selected_provider = prov
+                selected_key_name = provider_keys[prov]
+                break
+            elif prov == 'anthropic' and os.getenv('ANTHROPIC_BASE_URL'):
+                selected_provider = prov
+                selected_key_name = provider_keys[prov]
+                break
+            elif prov == 'gemini' and os.getenv('GEMINI_BASE_URL'):
+                selected_provider = prov
+                selected_key_name = provider_keys[prov]
+                break
+        
+        # Default to openai-compatible if no custom base URL
+        if not selected_provider:
+            selected_provider = 'openai-compatible'
+            selected_key_name = provider_keys[selected_provider]
+            warning_message = f"Multiple API keys detected ({', '.join(detected_keys)}). Defaulting to openai-compatible."
+    
+    # No keys detected
+    else:
+        selected_provider = provider_flag or 'openai-compatible'
+        selected_key_name = provider_keys.get(selected_provider)
+        if not can_prompt:
+            warning_message = f"No API keys found. Set {selected_key_name} or run with -i"
+    
+    return (selected_provider, detected_keys, selected_key_name, warning_message)
 

@@ -33,7 +33,17 @@ class ReportGenerator:
         # Determine next step
         next_step = self._get_next_step(status, checks)
         
-        return {
+        # Calculate estimated cost if available
+        estimated_cost = None
+        for check_name, check_result in checks.items():
+            metrics = check_result.get('metrics', {})
+            if 'estimated_cost_usd' in metrics:
+                if estimated_cost is None:
+                    estimated_cost = 0
+                estimated_cost += metrics.get('estimated_cost_usd', 0)
+        
+        # Build report
+        report = {
             'version': self.VERSION,
             'timestamp': datetime.utcnow().isoformat() + 'Z',
             'target': target,
@@ -44,8 +54,19 @@ class ReportGenerator:
                 'status': status,
                 'next_step': next_step,
                 'duration_seconds': round(duration, 2)
-            }
+            },
+            # BYOK receipt schema metadata
+            'receipt_format': 'badgr-compatible',
+            'execution_authority': 'ai-patch',
+            'billing_authority': 'customer'
         }
+        
+        # Add cost fields only if cost exists
+        if estimated_cost is not None:
+            report['estimated_cost_usd'] = round(estimated_cost, 6)
+            report['cost_source'] = 'model_pricing_table'
+        
+        return report
     
     def generate_markdown(self, report: Dict[str, Any]) -> str:
         """Generate Markdown report from report data."""
