@@ -1,6 +1,6 @@
 {
   "name": "ai-patch",
-  "version": "0.1.0",
+  "version": "0.1.2",
   "description": "Fix-first incident patcher for AI API issues - diagnose streaming, retries, cost, and traceability problems",
   "main": "dist/index.js",
   "bin": {
