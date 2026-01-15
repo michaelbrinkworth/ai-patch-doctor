@@ -10,7 +10,7 @@ readme = "README.md"
 requires-python = ">=3.8"
 license = { text = "MIT" }
 authors = [
-    { name = "AI Badgr", email = "support@aibadgr.com" }
+    { name = "Michael Brinkworth", email = "michael@brinkworth.dev" }
 ]
 keywords = ["ai", "openai", "anthropic", "gemini", "debugging", "streaming", "api"]
 classifiers = [
@@ -44,10 +44,10 @@ dev = [
 ai-patch = "ai_patch.cli:main"
 
 [project.urls]
-Homepage = "https://github.com/michaelbrinkworth/gpu-ai"
-Documentation = "https://github.com/michaelbrinkworth/gpu-ai/tree/main/ai-patch"
-Repository = "https://github.com/michaelbrinkworth/gpu-ai"
-Issues = "https://github.com/michaelbrinkworth/gpu-ai/issues"
+Homepage = "https://github.com/michaelbrinkworth/ai-patch-doctor"
+Documentation = "https://github.com/michaelbrinkworth/ai-patch-doctor"
+Repository = "https://github.com/michaelbrinkworth/ai-patch-doctor"
+Issues = "https://github.com/michaelbrinkworth/ai-patch-doctor/issues"
 
 [tool.setuptools.packages.find]
 where = ["src"]

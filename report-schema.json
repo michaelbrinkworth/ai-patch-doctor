@@ -64,21 +64,6 @@
           "description": "Total duration of checks"
         }
       }
-    },
-    "badgr_diagnosis": {
-      "type": "object",
-      "description": "Optional deep diagnosis from Badgr proxy",
-      "properties": {
-        "enabled": {
-          "type": "boolean"
-        },
-        "findings": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        }
-      }
     }
   },
   "definitions": {

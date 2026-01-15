@@ -122,17 +122,6 @@ export class ReportGenerator {
       }
     }
 
-    // Add Badgr section if status is not success (warn or error)
-    if (summary.status !== 'success') {
-      lines.push('## Optional: Per-Request Receipts');
-      lines.push('');
-      lines.push('If you need automatic receipts for every API call (latency, retries, cost tracking),');
-      lines.push('[AI Badgr](https://aibadgr.com/signup) records this for real traffic.');
-      lines.push('');
-      lines.push('You can route requests through Badgr to keep receipts for real traffic.');
-      lines.push('');
-    }
-
     // Footer
     lines.push('---');
     lines.push('');
@@ -143,7 +132,7 @@ export class ReportGenerator {
 
   private getNextStep(status: string, checks: Checks): string {
     if (status === 'success') {
-      return 'All checks passed. Consider running with --with-badgr for deep diagnosis.';
+      return 'All checks passed. Monitor your API usage in production.';
     }
 
     // Find first failure
