@@ -345,6 +345,140 @@ fi
 
 echo ""
 echo "=========================================="
+echo "Edge Case Tests"
+echo "=========================================="
+echo ""
+
+if [ -n "$PYTHON_CMD" ]; then
+    # Edge Case 1: Invalid target
+    run_test "Edge Case: Invalid target" \
+        "$PYTHON_CMD doctor --target invalid_target" \
+        2 \
+        "Invalid"
+    
+    # Edge Case 2: Multiple conflicting flags
+    run_test "Edge Case: Conflicting flags (interactive + CI)" \
+        "$PYTHON_CMD doctor -i --ci" \
+        2 \
+        ""
+    
+    # Edge Case 3: Empty provider string
+    run_test "Edge Case: Empty provider string" \
+        "$PYTHON_CMD doctor --provider ''" \
+        2 \
+        ""
+    
+    # Edge Case 4: Invalid API key format
+    run_test "Edge Case: Invalid API key format" \
+        "OPENAI_API_KEY='invalid' $PYTHON_CMD doctor --target cost --ci" \
+        1 \
+        ""
+    
+    # Edge Case 5: Test with all API keys unset
+    run_test "Edge Case: All API keys unset" \
+        "env -u OPENAI_API_KEY -u ANTHROPIC_API_KEY -u GEMINI_API_KEY $PYTHON_CMD doctor --ci" \
+        2 \
+        "Missing configuration"
+    
+    # Edge Case 6: Valid provider but no matching API key
+    run_test "Edge Case: Provider mismatch (anthropic without key)" \
+        "env -u ANTHROPIC_API_KEY $PYTHON_CMD doctor --provider anthropic --ci" \
+        2 \
+        ""
+    
+    # Edge Case 7: Multiple targets (should fail or handle gracefully)
+    run_test "Edge Case: Multiple targets flag" \
+        "$PYTHON_CMD doctor --target cost --target streaming" \
+        2 \
+        ""
+fi
+
+if [ -n "$NODE_CMD" ]; then
+    # Edge Case 1: Invalid target
+    run_test "Node Edge Case: Invalid target" \
+        "$NODE_CMD doctor --target invalid_target" \
+        2 \
+        "Invalid"
+    
+    # Edge Case 2: Multiple conflicting flags
+    run_test "Node Edge Case: Conflicting flags (interactive + CI)" \
+        "$NODE_CMD doctor -i --ci" \
+        2 \
+        ""
+    
+    # Edge Case 3: Empty provider string
+    run_test "Node Edge Case: Empty provider string" \
+        "$NODE_CMD doctor --provider ''" \
+        2 \
+        ""
+    
+    # Edge Case 4: Test with all API keys unset
+    run_test "Node Edge Case: All API keys unset" \
+        "env -u OPENAI_API_KEY -u ANTHROPIC_API_KEY -u GEMINI_API_KEY $NODE_CMD doctor --ci" \
+        2 \
+        "Missing configuration"
+fi
+
+echo ""
+echo "=========================================="
+echo "Multi-Provider Tests"
+echo "=========================================="
+echo ""
+
+if [ -n "$PYTHON_CMD" ]; then
+    # Test Claude/Anthropic provider
+    if [ -n "$ANTHROPIC_API_KEY" ]; then
+        run_test "Python: Anthropic provider" \
+            "$PYTHON_CMD doctor --provider anthropic --target streaming --ci" \
+            0 \
+            "Provider: anthropic"
+    else
+        log_info "Skipping Anthropic tests (no ANTHROPIC_API_KEY)"
+    fi
+    
+    # Test Gemini provider
+    if [ -n "$GEMINI_API_KEY" ]; then
+        run_test "Python: Gemini provider" \
+            "$PYTHON_CMD doctor --provider gemini --target cost --ci" \
+            0 \
+            "Provider: gemini"
+    else
+        log_info "Skipping Gemini tests (no GEMINI_API_KEY)"
+    fi
+    
+    # Test OpenAI-compatible with custom base URL
+    if [ "$HAS_API_KEY" = true ]; then
+        run_test "Python: OpenAI-compatible with custom base" \
+            "OPENAI_BASE_URL='https://api.openai.com/v1' $PYTHON_CMD doctor --provider openai-compatible --target retry --ci" \
+            0 \
+            "Provider: openai-compatible"
+    fi
+fi
+
+if [ -n "$NODE_CMD" ]; then
+    # Test Claude/Anthropic provider
+    if [ -n "$ANTHROPIC_API_KEY" ]; then
+        run_test "Node: Anthropic provider" \
+            "$NODE_CMD doctor --provider anthropic --target streaming --ci" \
+            0 \
+            "Provider: anthropic"
+    else
+        log_info "Skipping Node Anthropic tests (no ANTHROPIC_API_KEY)"
+    fi
+    
+    # Test Gemini provider
+    if [ -n "$GEMINI_API_KEY" ]; then
+        run_test "Node: Gemini provider" \
+            "$NODE_CMD doctor --provider gemini --target cost --ci" \
+            0 \
+            "Provider: gemini"
+    else
+        log_info "Skipping Node Gemini tests (no GEMINI_API_KEY)"
+    fi
+fi
+
+echo ""
+echo "=========================================="
 echo "Test Summary"
 echo "=========================================="
 echo ""

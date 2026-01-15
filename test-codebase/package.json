@@ -6,6 +6,7 @@
     "test": "echo 'Run AI Patch Doctor instead: npx ai-patch doctor'"
   },
   "dependencies": {
-    "openai": "^4.0.0"
+    "openai": "^4.0.0",
+    "@anthropic-ai/sdk": "^0.9.0"
   }
 }
