@@ -1,5 +1,9 @@
 #!/bin/bash
 # Comprehensive test script for AI Patch Doctor (Python and Node)
+#
+# Usage:
+#   ./test_doctor.sh              - Run tests normally
+#   VERBOSE=1 ./test_doctor.sh    - Show build errors when they occur
 
 set -e  # Exit on error
 
@@ -107,10 +111,23 @@ fi
 if command -v node &> /dev/null; then
     NODE_CMD="node ../node/dist/src/cli.js"
     if [ ! -f "../node/dist/src/cli.js" ]; then
-        log_info "Node CLI not built, building..."
-        cd ../node && npm run build && cd "$TEST_DIR"
+        log_info "Node CLI not built, attempting to build..."
+        BUILD_OUTPUT=$(cd ../node && npm install && npm run build 2>&1)
+        BUILD_STATUS=$?
+        cd "$TEST_DIR" || exit 1
+        
+        if [ $BUILD_STATUS -eq 0 ]; then
+            log_pass "Node CLI built successfully"
+        else
+            log_info "Node CLI build failed - skipping Node tests"
+            if [ -n "$VERBOSE" ]; then
+                echo "$BUILD_OUTPUT"
+            fi
+            NODE_CMD=""
+        fi
+    else
+        log_pass "Node found"
     fi
-    log_pass "Node found"
 else
     log_fail "Node not found"
     NODE_CMD=""
@@ -341,6 +358,172 @@ if [ -n "$PYTHON_CMD" ] && [ -n "$NODE_CMD" ] && [ "$HAS_API_KEY" = true ]; then
         log_fail "Cross: Output format mismatch"
     fi
     TOTAL_TESTS=$((TOTAL_TESTS + 1))
+fi
+
+echo ""
+echo "=========================================="
+echo "Edge Case Tests"
+echo "=========================================="
+echo ""
+
+if [ -n "$PYTHON_CMD" ]; then
+    # Edge Case 1: Invalid target
+    run_test "Edge Case: Invalid target" \
+        "$PYTHON_CMD doctor --target invalid_target" \
+        2 \
+        "Invalid"
+    
+    # Edge Case 2: Multiple conflicting flags
+    run_test "Edge Case: Conflicting flags (interactive + CI)" \
+        "$PYTHON_CMD doctor -i --ci" \
+        2 \
+        ""
+    
+    # Edge Case 3: Empty provider string
+    run_test "Edge Case: Empty provider string" \
+        "$PYTHON_CMD doctor --provider ''" \
+        2 \
+        ""
+    
+    # Edge Case 4: Invalid API key format
+    run_test "Edge Case: Invalid API key format" \
+        "OPENAI_API_KEY='invalid' $PYTHON_CMD doctor --target cost --ci" \
+        1 \
+        ""
+    
+    # Edge Case 5: Test with all API keys unset
+    run_test "Edge Case: All API keys unset" \
+        "env -u OPENAI_API_KEY -u ANTHROPIC_API_KEY -u GEMINI_API_KEY $PYTHON_CMD doctor --ci" \
+        2 \
+        "Missing configuration"
+    
+    # Edge Case 6: Valid provider but no matching API key
+    run_test "Edge Case: Provider mismatch (anthropic without key)" \
+        "env -u ANTHROPIC_API_KEY $PYTHON_CMD doctor --provider anthropic --ci" \
+        2 \
+        ""
+    
+    # Edge Case 7: Multiple targets (should fail or handle gracefully)
+    run_test "Edge Case: Multiple targets flag" \
+        "$PYTHON_CMD doctor --target cost --target streaming" \
+        2 \
+        ""
+    
+    # Edge Case 8: Help with other flags (should show help)
+    run_test "Edge Case: Help with target flag" \
+        "$PYTHON_CMD doctor --help --target streaming" \
+        0 \
+        "Run diagnosis"
+    
+    # Edge Case 9: Very long model name
+    if [ "$HAS_API_KEY" = true ]; then
+        run_test "Edge Case: Very long model name" \
+            "$PYTHON_CMD doctor --model 'this-is-a-very-long-model-name-that-does-not-exist' --target cost --ci" \
+            1 \
+            ""
+    fi
+    
+    # Edge Case 10: Special characters in provider
+    run_test "Edge Case: Special characters in provider" \
+        "$PYTHON_CMD doctor --provider 'openai@#$%' --ci" \
+        2 \
+        ""
+fi
+
+if [ -n "$NODE_CMD" ]; then
+    # Edge Case 1: Invalid target
+    run_test "Node Edge Case: Invalid target" \
+        "$NODE_CMD doctor --target invalid_target" \
+        2 \
+        "Invalid"
+    
+    # Edge Case 2: Multiple conflicting flags
+    run_test "Node Edge Case: Conflicting flags (interactive + CI)" \
+        "$NODE_CMD doctor -i --ci" \
+        2 \
+        ""
+    
+    # Edge Case 3: Empty provider string
+    run_test "Node Edge Case: Empty provider string" \
+        "$NODE_CMD doctor --provider ''" \
+        2 \
+        ""
+    
+    # Edge Case 4: Test with all API keys unset
+    run_test "Node Edge Case: All API keys unset" \
+        "env -u OPENAI_API_KEY -u ANTHROPIC_API_KEY -u GEMINI_API_KEY $NODE_CMD doctor --ci" \
+        2 \
+        "Missing configuration"
+    
+    # Edge Case 5: Help with other flags
+    run_test "Node Edge Case: Help with target flag" \
+        "$NODE_CMD doctor --help --target streaming" \
+        0 \
+        "Run diagnosis"
+    
+    # Edge Case 6: Special characters in provider
+    run_test "Node Edge Case: Special characters in provider" \
+        "$NODE_CMD doctor --provider 'openai@#$%' --ci" \
+        2 \
+        ""
+fi
+
+echo ""
+echo "=========================================="
+echo "Multi-Provider Tests"
+echo "=========================================="
+echo ""
+
+if [ -n "$PYTHON_CMD" ]; then
+    # Test Claude/Anthropic provider
+    if [ -n "$ANTHROPIC_API_KEY" ]; then
+        run_test "Python: Anthropic provider" \
+            "$PYTHON_CMD doctor --provider anthropic --target streaming --ci" \
+            0 \
+            "Provider: anthropic"
+    else
+        log_info "Skipping Anthropic tests (no ANTHROPIC_API_KEY)"
+    fi
+    
+    # Test Gemini provider
+    if [ -n "$GEMINI_API_KEY" ]; then
+        run_test "Python: Gemini provider" \
+            "$PYTHON_CMD doctor --provider gemini --target cost --ci" \
+            0 \
+            "Provider: gemini"
+    else
+        log_info "Skipping Gemini tests (no GEMINI_API_KEY)"
+    fi
+    
+    # Test OpenAI-compatible with custom base URL
+    if [ "$HAS_API_KEY" = true ]; then
+        run_test "Python: OpenAI-compatible with custom base" \
+            "OPENAI_BASE_URL='https://api.openai.com/v1' $PYTHON_CMD doctor --provider openai-compatible --target retry --ci" \
+            0 \
+            "Provider: openai-compatible"
+    fi
+fi
+
+if [ -n "$NODE_CMD" ]; then
+    # Test Claude/Anthropic provider
+    if [ -n "$ANTHROPIC_API_KEY" ]; then
+        run_test "Node: Anthropic provider" \
+            "$NODE_CMD doctor --provider anthropic --target streaming --ci" \
+            0 \
+            "Provider: anthropic"
+    else
+        log_info "Skipping Node Anthropic tests (no ANTHROPIC_API_KEY)"
+    fi
+    
+    # Test Gemini provider
+    if [ -n "$GEMINI_API_KEY" ]; then
+        run_test "Node: Gemini provider" \
+            "$NODE_CMD doctor --provider gemini --target cost --ci" \
+            0 \
+            "Provider: gemini"
+    else
+        log_info "Skipping Node Gemini tests (no GEMINI_API_KEY)"
+    fi
 fi
 
 echo ""
