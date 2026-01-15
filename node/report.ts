@@ -137,8 +137,8 @@ export class ReportGenerator {
       }
       
       // Aggregate not detected and not observable items
-      checkNotDetected.forEach(item => notDetected.push(item));
-      checkNotObservable.forEach(item => {
+      checkNotDetected.forEach((item: string) => notDetected.push(item));
+      checkNotObservable.forEach((item: string) => {
         if (!notObservable.includes(item)) {
           notObservable.push(item);
         }

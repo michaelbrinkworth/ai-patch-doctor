@@ -642,7 +642,7 @@ function printDiagnosis(reportData: any): void {
     
     // Aggregate not detected and not observable items
     notDetected.push(...checkNotDetected);
-    checkNotObservable.forEach(item => {
+    checkNotObservable.forEach((item: string) => {
       if (!notObservable.includes(item)) {
         notObservable.push(item);
       }
@@ -685,6 +685,7 @@ function printDiagnosis(reportData: any): void {
 function displaySummary(reportData: any, reportDir: string): void {
   const summary = reportData.summary;
   const status = summary.status;
+  const checks = reportData.checks;
 
   // Show file path
   const reportsBase = path.join(process.cwd(), 'ai-patch-reports');
