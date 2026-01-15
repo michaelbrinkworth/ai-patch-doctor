@@ -10,7 +10,7 @@ import * as path from 'path';
 import * as readline from 'readline';
 
 // Import from shared code (relative path to ai-patch-shared)
-import { Config, loadSavedConfig, saveConfig } from '../config';
+import { Config, loadSavedConfig, saveConfig, type SavedConfig } from '../config';
 import { ReportGenerator } from '../report';
 import { checkStreaming } from '../checks/streaming';
 import { checkRetries } from '../checks/retries';
@@ -331,7 +331,7 @@ program
       
       // Save config if requested
       if (save || saveKey) {
-        const configToSave: any = {};
+        const configToSave: Partial<SavedConfig> = {};
         if (save) {
           configToSave.provider = provider;
           configToSave.baseUrl = config.baseUrl;
@@ -438,7 +438,7 @@ program
       
       // Save config if requested
       if (save || saveKey) {
-        const configToSave: any = {};
+        const configToSave: Partial<SavedConfig> = {};
         if (save) {
           configToSave.provider = provider;
           configToSave.baseUrl = config.baseUrl;
@@ -625,7 +625,9 @@ function saveReport(reportData: any): string {
 
   // Try symlink
   try {
-    if (fs.existsSync(latestLink) || fs.lstatSync(latestLink).isSymbolicLink()) {
+    if (fs.existsSync(latestLink) && fs.lstatSync(latestLink).isSymbolicLink()) {
+      fs.unlinkSync(latestLink);
+    } else if (fs.existsSync(latestLink)) {
       fs.unlinkSync(latestLink);
     }
   } catch (e) {

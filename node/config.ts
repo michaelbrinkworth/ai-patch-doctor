@@ -6,7 +6,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
 
-interface SavedConfig {
+export interface SavedConfig {
   apiKey?: string;
   baseUrl?: string;
   provider?: string;
@@ -142,11 +142,11 @@ export function saveConfig(config: SavedConfig): void {
     }
 
     // Load existing config if it exists
-    let configData: any = {};
+    let configData: SavedConfig = {};
     if (fs.existsSync(configPath)) {
       try {
         const existingData = fs.readFileSync(configPath, 'utf-8');
-        configData = JSON.parse(existingData);
+        configData = JSON.parse(existingData) as SavedConfig;
       } catch (e) {
         // Ignore parse errors
       }
