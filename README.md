@@ -29,6 +29,7 @@ That's it! The doctor will interactively diagnose your AI API setup and generate
 - [Features](#-features)
 - [Installation](#-installation)
 - [Usage](#-usage)
+- [User Flow Documentation](#-user-flow-documentation)
 - [The 4 Wedge Checks](#-the-4-wedge-checks)
 - [Supported Providers](#-supported-providers)
 - [Architecture](#-architecture)
@@ -180,6 +181,22 @@ ai-patch share --redact
 # Revert applied changes
 ai-patch revert
 ```
+
+---
+
+## 📖 User Flow Documentation
+
+Want to understand exactly what happens when you run AI Patch Doctor? Check out our detailed step-by-step user flow documentation:
+
+- **[Node.js User Flow](./USERFLOW_NODE.md)** - Complete 70-step breakdown of the Node.js version
+- **[Python User Flow](./USERFLOW_PYTHON.md)** - Complete 80-step breakdown of the Python version
+
+These documents provide a detailed walkthrough of every phase from initialization through report generation, including:
+- Interactive prompting and user input handling
+- Configuration detection and secure credential management
+- Diagnostic check execution
+- Report generation and output formatting
+- Exit handling and cleanup
 
 ---
 
