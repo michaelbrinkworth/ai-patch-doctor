@@ -22,38 +22,38 @@ describe('AI Patch Doctor - Code Reuse & Structure', () => {
   });
 
   describe('Python Shared Code', () => {
-    test('Python checks directory exists', () => {
-      const checksPath = path.join(__dirname, 'python', 'checks');
+    test('Python checks directory exists in package', () => {
+      const checksPath = path.join(__dirname, 'python', 'src', 'ai_patch', 'checks');
       expect(fs.existsSync(checksPath)).toBe(true);
     });
 
     test('Python streaming check exists', () => {
-      const streamingPath = path.join(__dirname, 'python', 'checks', 'streaming.py');
+      const streamingPath = path.join(__dirname, 'python', 'src', 'ai_patch', 'checks', 'streaming.py');
       expect(fs.existsSync(streamingPath)).toBe(true);
     });
 
     test('Python retries check exists', () => {
-      const retriesPath = path.join(__dirname, 'python', 'checks', 'retries.py');
+      const retriesPath = path.join(__dirname, 'python', 'src', 'ai_patch', 'checks', 'retries.py');
       expect(fs.existsSync(retriesPath)).toBe(true);
     });
 
     test('Python cost check exists', () => {
-      const costPath = path.join(__dirname, 'python', 'checks', 'cost.py');
+      const costPath = path.join(__dirname, 'python', 'src', 'ai_patch', 'checks', 'cost.py');
       expect(fs.existsSync(costPath)).toBe(true);
     });
 
     test('Python trace check exists', () => {
-      const tracePath = path.join(__dirname, 'python', 'checks', 'trace.py');
+      const tracePath = path.join(__dirname, 'python', 'src', 'ai_patch', 'checks', 'trace.py');
       expect(fs.existsSync(tracePath)).toBe(true);
     });
 
-    test('Python config.py exists', () => {
-      const configPath = path.join(__dirname, 'python', 'config.py');
+    test('Python config.py exists in package', () => {
+      const configPath = path.join(__dirname, 'python', 'src', 'ai_patch', 'config.py');
       expect(fs.existsSync(configPath)).toBe(true);
     });
 
-    test('Python report.py exists', () => {
-      const reportPath = path.join(__dirname, 'python', 'report.py');
+    test('Python report.py exists in package', () => {
+      const reportPath = path.join(__dirname, 'python', 'src', 'ai_patch', 'report.py');
       expect(fs.existsSync(reportPath)).toBe(true);
     });
   });
@@ -106,30 +106,29 @@ describe('AI Patch Doctor - Code Reuse & Structure', () => {
       expect(fs.existsSync(mainPath)).toBe(true);
     });
 
-    test('Python CLI imports from shared code', () => {
+    test('Python CLI imports from ai_patch package', () => {
       const mainPath = path.join(__dirname, 'python', 'src', 'ai_patch', 'cli.py');
       const content = fs.readFileSync(mainPath, 'utf8');
-      // Check for shared imports
-      const hasSharedImport = content.includes('sys.path.insert') &&
-                             (content.includes('from checks import') ||
-                              content.includes('from report import') ||
-                              content.includes('from config import'));
-      expect(hasSharedImport).toBe(true);
+      // Check for package imports
+      const hasPackageImport = content.includes('from ai_patch.checks import') &&
+                               content.includes('from ai_patch.report import') &&
+                               content.includes('from ai_patch.config import');
+      expect(hasPackageImport).toBe(true);
     });
 
-    test('Python CLI does NOT have duplicate checks directory in src', () => {
+    test('Python CLI has checks directory in src/ai_patch', () => {
       const checksPath = path.join(__dirname, 'python', 'src', 'ai_patch', 'checks');
-      expect(fs.existsSync(checksPath)).toBe(false);
+      expect(fs.existsSync(checksPath)).toBe(true);
     });
 
-    test('Python CLI does NOT have duplicate config.py in src', () => {
+    test('Python CLI has config.py in src/ai_patch', () => {
       const configPath = path.join(__dirname, 'python', 'src', 'ai_patch', 'config.py');
-      expect(fs.existsSync(configPath)).toBe(false);
+      expect(fs.existsSync(configPath)).toBe(true);
     });
 
-    test('Python CLI does NOT have duplicate report.py in src', () => {
+    test('Python CLI has report.py in src/ai_patch', () => {
       const reportPath = path.join(__dirname, 'python', 'src', 'ai_patch', 'report.py');
-      expect(fs.existsSync(reportPath)).toBe(false);
+      expect(fs.existsSync(reportPath)).toBe(true);
     });
   });
 
@@ -212,14 +211,14 @@ describe('AI Patch Doctor - Code Reuse & Structure', () => {
   });
 
   describe('Code Quality Checks', () => {
-    test('No duplicate code between Python CLI and shared modules', () => {
-      const cliChecksPath = path.join(__dirname, 'python', 'src', 'ai_patch', 'checks');
-      const sharedChecksPath = path.join(__dirname, 'python', 'checks');
+    test('Python checks modules are in the package', () => {
+      const packageChecksPath = path.join(__dirname, 'python', 'src', 'ai_patch', 'checks');
+      const oldChecksPath = path.join(__dirname, 'python', 'checks');
       
-      // CLI src should not have checks directory (imports from parent)
-      expect(fs.existsSync(cliChecksPath)).toBe(false);
-      // Python root should have checks
-      expect(fs.existsSync(sharedChecksPath)).toBe(true);
+      // Checks should be in the package now
+      expect(fs.existsSync(packageChecksPath)).toBe(true);
+      // Old location should not exist anymore
+      expect(fs.existsSync(oldChecksPath)).toBe(false);
     });
 
     test('No duplicate code between Node CLI and shared modules', () => {
@@ -278,7 +277,7 @@ describe('AI Patch Doctor - Functional Tests', () => {
   test('Python has all 4 check modules', () => {
     const checks = ['streaming', 'retries', 'cost', 'trace'];
     checks.forEach(check => {
-      const checkPath = path.join(__dirname, 'python', 'checks', `${check}.py`);
+      const checkPath = path.join(__dirname, 'python', 'src', 'ai_patch', 'checks', `${check}.py`);
       expect(fs.existsSync(checkPath)).toBe(true);
     });
   });

@@ -11,16 +11,10 @@ from pathlib import Path
 from typing import Optional, Dict, Any
 import click
 
-# Import from shared code
-# Add the python directory to sys.path to import checks, report, and config
-# cli.py is in python/src/ai_patch/cli.py, we need python/ which is ../..
-python_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '../..'))
-if python_dir not in sys.path:
-    sys.path.insert(0, python_dir)
-
-from checks import streaming, retries, cost, trace
-from report import ReportGenerator
-from config import Config, load_saved_config, save_config
+# Import from package (now all in ai_patch package)
+from ai_patch.checks import streaming, retries, cost, trace
+from ai_patch.report import ReportGenerator
+from ai_patch.config import Config, load_saved_config, save_config
 
 
 @click.group(invoke_without_command=True)

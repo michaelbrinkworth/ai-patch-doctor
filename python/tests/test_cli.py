@@ -6,13 +6,9 @@ import sys
 import os
 from pathlib import Path
 
-# Add python directory to path to import config, report, and checks
-python_dir = Path(__file__).parent.parent
-if str(python_dir) not in sys.path:
-    sys.path.append(str(python_dir))
-
-from config import Config
-from report import ReportGenerator
+# Import from installed package
+from ai_patch.config import Config
+from ai_patch.report import ReportGenerator
 
 
 def test_config_auto_detect():
@@ -81,7 +77,7 @@ def test_check_modules_import():
     print("Testing check module imports...")
     
     try:
-        from checks import streaming, retries, cost, trace
+        from ai_patch.checks import streaming, retries, cost, trace
         
         assert hasattr(streaming, 'check'), "streaming should have check function"
         assert hasattr(retries, 'check'), "retries should have check function"
@@ -94,7 +90,7 @@ def test_check_modules_import():
         print(f"⚠️  Import error (missing dependencies): {e}")
         print("   Checking if check files exist instead...")
         
-        checks_dir = Path(__file__).parent.parent / 'checks'
+        checks_dir = Path(__file__).parent.parent / 'src' / 'ai_patch' / 'checks'
         check_files = ['streaming.py', 'retries.py', 'cost.py', 'trace.py']
         
         for check_file in check_files:

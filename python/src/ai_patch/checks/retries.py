@@ -2,7 +2,7 @@
 
 import httpx
 from typing import Dict, Any
-from config import Config
+from ai_patch.config import Config
 
 
 def check(config: Config) -> Dict[str, Any]:
