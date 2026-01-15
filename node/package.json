@@ -25,13 +25,13 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/michaelbrinkworth/gpu-ai.git",
-    "directory": "ai-patch/node"
+    "url": "https://github.com/michaelbrinkworth/ai-patch-doctor.git",
+    "directory": "node"
   },
   "bugs": {
-    "url": "https://github.com/michaelbrinkworth/gpu-ai/issues"
+    "url": "https://github.com/michaelbrinkworth/ai-patch-doctor/issues"
   },
-  "homepage": "https://github.com/michaelbrinkworth/gpu-ai/tree/main/ai-patch",
+  "homepage": "https://github.com/michaelbrinkworth/ai-patch-doctor",
   "engines": {
     "node": ">=16.0.0"
   },
