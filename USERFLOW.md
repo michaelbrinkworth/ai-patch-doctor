@@ -297,21 +297,22 @@ Both implementations support additional commands beyond the main `doctor` comman
 5. Shows warnings but continues
 6. Allows manual API key entry
 
-### Non-Interactive Mode (default)
-1. No prompts displayed
-2. Exits immediately on missing config
-3. Uses defaults where possible
-4. All config from environment or flags
-5. Suitable for CI/CD pipelines
-6. Fail-fast behavior
+### Non-Interactive Mode (default / frictionless mode)
+1. No preference menus (target, provider)
+2. Allows essential prompts (API key) if TTY available
+3. Exits immediately on missing config if no TTY
+4. Uses defaults where possible
+5. All config from environment, flags, or essential prompts
+6. Suitable for terminal use with minimal friction
 
 ### CI Mode (`--ci` flag)
-1. Explicitly disables all prompts
+1. Explicitly disables all prompts (including essential prompts)
 2. Strict validation
 3. Clear error messages
 4. Exit code 2 for configuration errors
 5. Exit code 1 for diagnostic failures
 6. Exit code 0 only on complete success
+7. Suitable for CI/CD pipelines with fail-fast behavior
 
 ---
 
