@@ -181,7 +181,7 @@ class ReportGenerator:
         """Determine the recommended next step."""
         
         if status == 'success':
-            return "All checks passed. Consider running with --with-badgr for deep diagnosis."
+            return "All checks passed."
         
         # Find first failure
         for check_name, check_result in checks.items():

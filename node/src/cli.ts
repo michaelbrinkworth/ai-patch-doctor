@@ -67,56 +67,75 @@ function shouldPrompt(interactiveFlag: boolean, ciFlag: boolean): boolean {
 
 /**
  * Prompt for hidden input (like password)
+ * SECURITY: No echo, properly restore raw mode, clean up listeners
  */
 function promptHidden(query: string): Promise<string> {
-  return new Promise((resolve) => {
-    const rl = readline.createInterface({
-      input: process.stdin,
-      output: process.stdout,
-    });
-
-    // Hide input
+  return new Promise((resolve, reject) => {
     const stdin = process.stdin;
-    if ((stdin as any).isTTY) {
-      (stdin as any).setRawMode(true);
+    const stdout = process.stdout;
+    
+    // Check if TTY is available
+    if (!(stdin as any).isTTY) {
+      reject(new Error('Cannot prompt for hidden input in non-TTY environment'));
+      return;
     }
 
     let input = '';
+    let rawModeEnabled = false;
     
-    process.stdout.write(query);
-    
-    stdin.on('data', (char) => {
+    // Data handler for stdin
+    const onData = (char: Buffer) => {
       const c = char.toString();
       
       if (c === '\n' || c === '\r' || c === '\u0004') {
-        // Enter or Ctrl+D
-        if ((stdin as any).isTTY) {
-          (stdin as any).setRawMode(false);
-        }
-        stdin.pause();
-        process.stdout.write('\n');
-        rl.close();
+        // Enter or Ctrl+D - finish input
+        cleanup();
+        stdout.write('\n');
         resolve(input);
       } else if (c === '\u0003') {
-        // Ctrl+C
-        if ((stdin as any).isTTY) {
-          (stdin as any).setRawMode(false);
-        }
-        stdin.pause();
-        process.stdout.write('\n');
-        rl.close();
+        // Ctrl+C - abort
+        cleanup();
+        stdout.write('\n');
         process.exit(1);
       } else if (c === '\u007f' || c === '\b') {
-        // Backspace
+        // Backspace - remove last character
         if (input.length > 0) {
           input = input.slice(0, -1);
         }
-      } else {
+        // No visual feedback for backspace in hidden mode
+      } else if (c.charCodeAt(0) >= 32) {
+        // Only accept printable characters (ASCII >= 32)
+        // NO ECHO - just store the character
         input += c;
       }
-    });
+      // For all other control characters, do nothing (no echo)
+    };
     
-    stdin.resume();
+    // Cleanup function to restore terminal state
+    const cleanup = () => {
+      if (rawModeEnabled) {
+        try {
+          (stdin as any).setRawMode(false);
+          rawModeEnabled = false;
+        } catch (e) {
+          // Ignore errors on cleanup
+        }
+      }
+      stdin.removeListener('data', onData);
+      stdin.pause();
+    };
+    
+    // Set up raw mode and listener
+    try {
+      (stdin as any).setRawMode(true);
+      rawModeEnabled = true;
+      stdout.write(query);
+      stdin.on('data', onData);
+      stdin.resume();
+    } catch (error) {
+      cleanup();
+      reject(error);
+    }
   });
 }
 
@@ -361,7 +380,7 @@ program
 
 program
   .command('apply')
-  .description('Apply suggested fixes (use --safe to actually apply)')
+  .description('Apply suggested fixes (experimental - not fully implemented in MVP)')
   .option('--safe', 'Apply in safe mode (dry-run by default)')
   .action((options) => {
     if (!options.safe) {
@@ -418,16 +437,16 @@ program
 
 program
   .command('diagnose')
-  .description('Deep diagnosis (optional Badgr proxy for enhanced checks)')
-  .option('--with-badgr', 'Enable deep diagnosis through Badgr proxy')
+  .description('Deep diagnosis mode (experimental)')
+  .option('--with-badgr', 'Enable deep diagnosis through Badgr proxy (not available in MVP)')
   .action(async (options) => {
-    console.log('🔬 AI Patch Deep Diagnosis\n');
-
     if (options.withBadgr) {
-      console.log('Starting local Badgr-compatible proxy...');
-      console.log('⚠️  Badgr proxy not yet implemented');
-      console.log('   Falling back to standard checks');
+      console.log('❌ --with-badgr is not available in MVP');
+      console.log('   This feature requires the Badgr receipt gateway');
+      process.exit(2);
     }
+
+    console.log('🔬 AI Patch Deep Diagnosis\n');
 
     const config = Config.autoDetect('openai-compatible');
     await runChecks('all', config, 'openai-compatible');
@@ -450,14 +469,12 @@ program
 
     const bundlePath = path.join(path.dirname(reportPath), 'share-bundle.zip');
 
-    console.log(`✓ Created: ${bundlePath}\n`);
-    console.log('📧 Share this bundle with AI Badgr support for confirmation / pilot:');
-    console.log('   support@aibadgr.com');
+    console.log(`✓ Created: ${bundlePath}`);
   });
 
 program
   .command('revert')
-  .description('Undo any applied local changes')
+  .description('Undo applied changes (experimental - not fully implemented in MVP)')
   .action(() => {
     console.log('↩️  Reverting applied changes...\n');
     console.log('✓ Reverted all applied changes');

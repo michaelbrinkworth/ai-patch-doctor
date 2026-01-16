@@ -200,7 +200,7 @@ export class ReportGenerator {
 
   private getNextStep(status: string, checks: Checks): string {
     if (status === 'success') {
-      return 'All checks passed. Consider running with --with-badgr for deep diagnosis.';
+      return 'All checks passed.';
     }
 
     // Find first failure

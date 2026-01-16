@@ -258,7 +258,7 @@ def doctor(
 @main.command()
 @click.option('--safe', is_flag=True, help='Apply in safe mode (dry-run by default)')
 def apply(safe: bool):
-    """Apply suggested fixes (use --safe to actually apply)."""
+    """Apply suggested fixes (experimental - not fully implemented in MVP)."""
     if not safe:
         click.echo("⚠️  Dry-run mode (default)")
         click.echo("   Use --safe to apply changes")
@@ -314,16 +314,16 @@ def test(target: Optional[str]):
 
 
 @main.command()
-@click.option('--with-badgr', is_flag=True, help='Enable deep diagnosis through Badgr proxy')
+@click.option('--with-badgr', is_flag=True, help='Enable deep diagnosis through Badgr proxy (not available in MVP)')
 def diagnose(with_badgr: bool):
-    """Deep diagnosis (optional Badgr proxy for enhanced checks)."""
-    click.echo("🔬 AI Patch Deep Diagnosis\n")
+    """Deep diagnosis mode (experimental)."""
     
     if with_badgr:
-        click.echo("Starting local Badgr-compatible proxy...")
-        # TODO: Implement Badgr proxy
-        click.echo("⚠️  Badgr proxy not yet implemented")
-        click.echo("   Falling back to standard checks")
+        click.echo("❌ --with-badgr is not available in MVP")
+        click.echo("   This feature requires the Badgr receipt gateway")
+        sys.exit(2)
+    
+    click.echo("🔬 AI Patch Deep Diagnosis\n")
     
     # Run standard diagnosis
     config = Config.auto_detect('openai-compatible')
@@ -347,14 +347,11 @@ def share(redact: bool):
     bundle_path = report_path.parent / "share-bundle.zip"
     
     click.echo(f"✓ Created: {bundle_path}")
-    click.echo()
-    click.echo("📧 Share this bundle with AI Badgr support for confirmation / pilot:")
-    click.echo("   support@aibadgr.com")
 
 
 @main.command()
 def revert():
-    """Undo any applied local changes."""
+    """Undo applied changes (experimental - not fully implemented in MVP)."""
     click.echo("↩️  Reverting applied changes...\n")
     
     # TODO: Implement revert logic
