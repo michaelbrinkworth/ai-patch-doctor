@@ -13,11 +13,15 @@ interface CheckResult {
     details?: any;
   }>;
   metrics?: Record<string, any>;
+  not_detected?: string[];
+  not_observable?: string[];
 }
 
 export async function checkRetries(config: Config): Promise<CheckResult> {
   const findings: any[] = [];
   const metrics: Record<string, any> = {};
+  const notDetected: string[] = [];
+  const notObservable: string[] = [];
 
   try {
     const url = `${config.baseUrl.replace(/\/$/, '')}/v1/chat/completions`;
@@ -43,7 +47,7 @@ export async function checkRetries(config: Config): Promise<CheckResult> {
     if (retryAfter) {
       findings.push({
         severity: 'info',
-        message: `Retry-After header present: ${retryAfter}s`,
+        message: `Retry-After header: ${retryAfter}s`,
       });
       metrics.retry_after_s = retryAfter;
     }
@@ -55,31 +59,37 @@ export async function checkRetries(config: Config): Promise<CheckResult> {
       if (parseInt(rateLimitRemaining) < 10) {
         findings.push({
           severity: 'warning',
-          message: `Low rate limit remaining: ${rateLimitRemaining}`,
+          message: `Rate limit remaining: ${rateLimitRemaining} requests`,
         });
       }
     }
 
-    // General recommendations
-    findings.push({
-      severity: 'info',
-      message: 'Recommended: Use exponential backoff with jitter for retries',
-    });
+    // Check for 429 status
+    if (response.status === 429) {
+      findings.push({
+        severity: 'warning',
+        message: 'Rate limiting detected (HTTP 429)',
+      });
+    }
 
-    findings.push({
-      severity: 'info',
-      message: 'Never retry after stream has started (partial response received)',
-    });
+    // If no rate limiting detected, add to not_detected
+    if (response.status !== 429 && !response.headers.get('retry-after')) {
+      notDetected.push('Rate limiting (no 429s in 1 probe)');
+    }
 
-    findings.push({
-      severity: 'info',
-      message: 'Set retry cap (e.g., 3 attempts max) to avoid infinite loops',
-    });
+    // Add "Not observable" only if there are warnings/errors
+    const hasWarnings = findings.some((f) => f.severity === 'warning' || f.severity === 'error');
+    if (hasWarnings) {
+      notObservable.push('Retry policy');
+      notObservable.push('Retry after stream start');
+    }
 
     return {
-      status: 'pass',
+      status: findings.some((f) => f.severity === 'warning' || f.severity === 'error') ? 'warn' : 'pass',
       findings,
       metrics,
+      not_detected: notDetected,
+      not_observable: notObservable,
     };
   } catch (error: any) {
     if (error.message.includes('429')) {
@@ -92,6 +102,8 @@ export async function checkRetries(config: Config): Promise<CheckResult> {
           },
         ],
         metrics,
+        not_detected: notDetected,
+        not_observable: ['Retry policy', 'Retry after stream start'],
       };
     }
 
@@ -104,6 +116,8 @@ export async function checkRetries(config: Config): Promise<CheckResult> {
         },
       ],
       metrics,
+      not_detected: notDetected,
+      not_observable: notObservable,
     };
   }
 }

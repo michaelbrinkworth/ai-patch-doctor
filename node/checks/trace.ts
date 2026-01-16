@@ -14,11 +14,15 @@ interface CheckResult {
     details?: any;
   }>;
   metrics?: Record<string, any>;
+  not_detected?: string[];
+  not_observable?: string[];
 }
 
 export async function checkTrace(config: Config): Promise<CheckResult> {
   const findings: any[] = [];
   const metrics: Record<string, any> = {};
+  const notDetected: string[] = [];
+  const notObservable: string[] = [];
 
   try {
     const url = `${config.baseUrl.replace(/\/$/, '')}/v1/chat/completions`;
@@ -57,14 +61,15 @@ export async function checkTrace(config: Config): Promise<CheckResult> {
     if (providerRequestId) {
       findings.push({
         severity: 'info',
-        message: `Provider request ID found: ${providerRequestId}`,
+        message: `Provider request ID: ${providerRequestId}`,
       });
       metrics.provider_request_id = providerRequestId;
     } else {
       findings.push({
         severity: 'warning',
-        message: 'No provider request ID found in response headers',
+        message: 'Provider request ID not found in response headers',
       });
+      notDetected.push('Provider request ID (not found in response headers)');
     }
 
     // Calculate request hash for duplicate detection
@@ -75,29 +80,20 @@ export async function checkTrace(config: Config): Promise<CheckResult> {
 
     findings.push({
       severity: 'info',
-      message: `Generated request hash: ${requestHash} (for duplicate detection)`,
+      message: `Generated request hash: ${requestHash}`,
     });
 
-    // Recommendations
-    findings.push({
-      severity: 'info',
-      message: 'Always include X-Request-ID header for request correlation',
-    });
-
-    findings.push({
-      severity: 'info',
-      message: 'Log request hashes to detect duplicate API calls',
-    });
-
-    findings.push({
-      severity: 'info',
-      message: 'Capture provider request IDs from response headers for support tickets',
-    });
+    // Add "Not observable" only if there are warnings
+    if (!providerRequestId) {
+      notObservable.push('Duplicate requests');
+    }
 
     return {
-      status: 'pass',
+      status: providerRequestId ? 'pass' : 'warn',
       findings,
       metrics,
+      not_detected: notDetected,
+      not_observable: notObservable,
     };
   } catch (error: any) {
     return {
@@ -109,6 +105,8 @@ export async function checkTrace(config: Config): Promise<CheckResult> {
         },
       ],
       metrics,
+      not_detected: notDetected,
+      not_observable: notObservable,
     };
   }
 }

@@ -12,11 +12,15 @@ interface CheckResult {
     details?: any;
   }>;
   metrics?: Record<string, any>;
+  not_detected?: string[];
+  not_observable?: string[];
 }
 
 export async function checkCost(config: Config): Promise<CheckResult> {
   const findings: any[] = [];
   const metrics: Record<string, any> = {};
+  const notDetected: string[] = [];
+  const notObservable: string[] = [];
 
   // Cost estimation (simplified)
   const pricingMap: Record<string, [number, number]> = {
@@ -41,35 +45,23 @@ export async function checkCost(config: Config): Promise<CheckResult> {
   metrics.input_price_per_1m = inputPrice;
   metrics.output_price_per_1m = outputPrice;
 
-  // Recommendations
+  // Only report pricing (informational)
+  // Status is 'pass' because we're not detecting any issues,
+  // just providing pricing information from the model lookup table
   findings.push({
     severity: 'info',
-    message: `Model pricing: $${inputPrice}/1M input, $${outputPrice}/1M output tokens`,
+    message: `Model pricing: $${inputPrice}/1M input tokens, $${outputPrice}/1M output tokens`,
   });
 
-  findings.push({
-    severity: 'info',
-    message: 'Set max_tokens cap to prevent runaway costs (e.g., max_tokens: 2000)',
-  });
-
-  findings.push({
-    severity: 'info',
-    message: 'Monitor for tool/function call loops that can burn tokens quickly',
-  });
-
-  findings.push({
-    severity: 'info',
-    message: 'Consider implementing per-user or per-session token budgets',
-  });
-
-  findings.push({
-    severity: 'warning',
-    message: 'No prompt size validation detected. Large prompts can cause cost spikes.',
-  });
+  // Cost checks always have "not observable" items since we can't see real usage
+  // But only add them if there are warnings (there aren't any by default now)
+  // For now, cost check is informational only
 
   return {
-    status: 'warn',
+    status: 'pass',
     findings,
     metrics,
+    not_detected: notDetected,
+    not_observable: notObservable,
   };
 }

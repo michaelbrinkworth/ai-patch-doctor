@@ -3,7 +3,7 @@ requires = ["setuptools>=61.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "ai-patch"
+name = "ai-patch-doctor"
 version = "0.1.2"
 description = "Fix-first incident patcher for AI API issues - diagnose streaming, retries, cost, and traceability problems"
 readme = "README.md"

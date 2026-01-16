@@ -1,0 +1,12 @@
+{
+  "name": "test-codebase",
+  "version": "1.0.0",
+  "description": "Test codebase with AI API issues for AI Patch Doctor",
+  "scripts": {
+    "test": "echo 'Run AI Patch Doctor instead: npx ai-patch doctor'"
+  },
+  "dependencies": {
+    "openai": "^4.0.0",
+    "@anthropic-ai/sdk": "^0.9.0"
+  }
+}

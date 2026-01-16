@@ -13,11 +13,15 @@ interface CheckResult {
     details?: any;
   }>;
   metrics?: Record<string, any>;
+  not_detected?: string[];
+  not_observable?: string[];
 }
 
 export async function checkStreaming(config: Config): Promise<CheckResult> {
   const findings: any[] = [];
   const metrics: Record<string, any> = {};
+  const notDetected: string[] = [];
+  const notObservable: string[] = [];
 
   try {
     const url = `${config.baseUrl.replace(/\/$/, '')}/v1/chat/completions`;
@@ -79,19 +83,19 @@ export async function checkStreaming(config: Config): Promise<CheckResult> {
     if (ttfb && ttfb / 1000 > 5.0) {
       findings.push({
         severity: 'warning',
-        message: `High TTFB: ${(ttfb / 1000).toFixed(2)}s (>5s). Check network or proxy settings.`,
+        message: `TTFB: ${(ttfb / 1000).toFixed(1)}s (threshold: 5s)`,
       });
     }
 
     if (maxChunkGap > 30.0) {
       findings.push({
         severity: 'error',
-        message: `Large chunk gap: ${maxChunkGap.toFixed(2)}s (>30s). Possible SSE stall or proxy idle timeout.`,
+        message: `Max chunk gap: ${maxChunkGap.toFixed(1)}s (>30s threshold)`,
       });
     } else if (maxChunkGap > 10.0) {
       findings.push({
         severity: 'warning',
-        message: `Chunk gap: ${maxChunkGap.toFixed(2)}s (>10s). Monitor for potential stalls.`,
+        message: `Max chunk gap: ${maxChunkGap.toFixed(1)}s (>10s threshold)`,
       });
     }
 
@@ -103,7 +107,12 @@ export async function checkStreaming(config: Config): Promise<CheckResult> {
       status = 'warn';
     }
 
-    return { status, findings, metrics };
+    // Add "Not observable" only if there are warnings/errors
+    if (status === 'warn' || status === 'fail') {
+      notObservable.push('Whether client retries after partial stream');
+    }
+
+    return { status, findings, metrics, not_detected: notDetected, not_observable: notObservable };
   } catch (error: any) {
     return {
       status: 'fail',
@@ -114,6 +123,8 @@ export async function checkStreaming(config: Config): Promise<CheckResult> {
         },
       ],
       metrics,
+      not_detected: notDetected,
+      not_observable: notObservable,
     };
   }
 }

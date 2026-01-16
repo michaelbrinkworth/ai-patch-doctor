@@ -3,7 +3,7 @@
 import time
 import httpx
 from typing import Dict, Any
-from config import Config
+from ai_patch.config import Config
 
 
 def check(config: Config) -> Dict[str, Any]:
@@ -11,6 +11,8 @@ def check(config: Config) -> Dict[str, Any]:
     
     findings = []
     metrics = {}
+    not_detected = []
+    not_observable = []
     
     try:
         # Test streaming endpoint
@@ -60,18 +62,18 @@ def check(config: Config) -> Dict[str, Any]:
         if ttfb and ttfb > 5.0:
             findings.append({
                 'severity': 'warning',
-                'message': f'High TTFB: {ttfb:.2f}s (>5s). Check network or proxy settings.'
+                'message': f'TTFB: {ttfb:.1f}s (threshold: 5s)'
             })
         
         if max_chunk_gap > 30.0:
             findings.append({
                 'severity': 'error',
-                'message': f'Large chunk gap: {max_chunk_gap:.2f}s (>30s). Possible SSE stall or proxy idle timeout.'
+                'message': f'Max chunk gap: {max_chunk_gap:.1f}s (>30s threshold)'
             })
         elif max_chunk_gap > 10.0:
             findings.append({
                 'severity': 'warning',
-                'message': f'Chunk gap: {max_chunk_gap:.2f}s (>10s). Monitor for potential stalls.'
+                'message': f'Max chunk gap: {max_chunk_gap:.1f}s (>10s threshold)'
             })
         
         # Determine status
@@ -81,6 +83,10 @@ def check(config: Config) -> Dict[str, Any]:
             status = 'fail'
         else:
             status = 'warn'
+        
+        # Add "Not observable" only if there are warnings/errors
+        if status in ['warn', 'fail']:
+            not_observable.append('Whether client retries after partial stream')
         
     except httpx.TimeoutException as e:
         status = 'fail'
@@ -104,5 +110,7 @@ def check(config: Config) -> Dict[str, Any]:
     return {
         'status': status,
         'findings': findings,
-        'metrics': metrics
+        'metrics': metrics,
+        'not_detected': not_detected,
+        'not_observable': not_observable
     }

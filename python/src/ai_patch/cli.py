@@ -8,19 +8,49 @@ import json
 import getpass
 from datetime import datetime
 from pathlib import Path
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, List
 import click
 
-# Import from shared code
-# Add the python directory to sys.path to import checks, report, and config
-# cli.py is in python/src/ai_patch/cli.py, we need python/ which is ../..
-python_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '../..'))
-if python_dir not in sys.path:
-    sys.path.insert(0, python_dir)
+# Import from package (now all in ai_patch package)
+from ai_patch.checks import streaming, retries, cost, trace
+from ai_patch.report import ReportGenerator
+from ai_patch.config import Config, load_saved_config, save_config, auto_detect_provider
 
-from checks import streaming, retries, cost, trace
-from report import ReportGenerator
-from config import Config, load_saved_config, save_config
+
+
+def should_prompt(interactive_flag: bool, ci_flag: bool) -> bool:
+    """Determine if essential prompting is allowed (e.g., API key).
+    
+    Returns True when: is_tty AND NOT ci_flag (frictionless mode)
+    If interactive_flag is set but not TTY: print error and exit 2
+    In --ci: never prompt
+    
+    Note: This is for ESSENTIAL prompts only (API key).
+    For preference menus (target, provider), use interactive_flag directly.
+    
+    Args:
+        interactive_flag: Whether -i/--interactive was passed
+        ci_flag: Whether --ci was passed
+        
+    Returns:
+        True if essential prompting is allowed, False otherwise
+    """
+    is_tty = sys.stdin.isatty() and sys.stdout.isatty()
+    
+    # CI mode never prompts
+    if ci_flag:
+        return False
+    
+    # Interactive mode requested
+    if interactive_flag:
+        if not is_tty:
+            click.echo("❌ Error: Interactive mode (-i) requested but not running in a TTY")
+            click.echo("   Run without -i for non-interactive mode, or run in a terminal")
+            sys.exit(2)
+        return True
+    
+    # Default: allow essential prompts in TTY (frictionless mode)
+    return is_tty
 
 
 @click.group(invoke_without_command=True)
@@ -28,22 +58,56 @@ from config import Config, load_saved_config, save_config
 def main(ctx):
     """AI Patch - Fix-first incident patcher for AI API issues.
     
-    Default command runs interactive doctor mode.
+    Default command runs non-interactive doctor mode.
     """
     if ctx.invoked_subcommand is None:
-        # No subcommand - run interactive mode
+        # No subcommand - run doctor mode (now non-interactive by default)
         ctx.invoke(doctor)
 
 
 @main.command()
 @click.option('--target', type=click.Choice(['streaming', 'retries', 'cost', 'trace', 'prod', 'all']), 
               help='Specific target to check')
-def doctor(target: Optional[str]):
-    """Run interactive diagnosis (default command)."""
-    click.echo("🔍 AI Patch Doctor - Interactive Mode\n")
+@click.option('-i', '--interactive', 'interactive_flag', is_flag=True, 
+              help='Enable interactive prompts (requires TTY)')
+@click.option('--ci', is_flag=True, 
+              help='CI mode: never prompt, fail fast on missing config')
+@click.option('--provider', type=click.Choice(['openai-compatible', 'anthropic', 'gemini']),
+              help='Specify provider explicitly')
+@click.option('--model', help='Specify model name')
+@click.option('--save', is_flag=True, 
+              help='Save non-secret config (base_url, provider)')
+@click.option('--save-key', is_flag=True,
+              help='Save API key (requires --force)')
+@click.option('--force', is_flag=True,
+              help='Required with --save-key to confirm key storage')
+def doctor(
+    target: Optional[str],
+    interactive_flag: bool,
+    ci: bool,
+    provider: Optional[str],
+    model: Optional[str],
+    save: bool,
+    save_key: bool,
+    force: bool
+):
+    """Run diagnosis (non-interactive by default)."""
     
-    # Interactive questions
-    if not target:
+    # Check if prompting is allowed
+    can_prompt = should_prompt(interactive_flag, ci)
+    
+    # Validate --save-key requires --force
+    if save_key and not force:
+        click.echo("❌ Error: --save-key requires --force flag")
+        click.echo("   Example: ai-patch doctor --save-key --force")
+        sys.exit(2)
+    
+    # Welcome message (only in explicit interactive mode)
+    if interactive_flag:
+        click.echo("🔍 AI Patch Doctor - Interactive Mode\n")
+    
+    # Interactive questions for target (only with -i flag)
+    if not target and interactive_flag:
         click.echo("What's failing?")
         click.echo("  1. streaming / SSE stalls / partial output")
         click.echo("  2. retries / 429 / rate-limit chaos")
@@ -60,26 +124,51 @@ def doctor(target: Optional[str]):
             5: 'all'
         }
         target = target_map.get(choice, 'all')
+    elif not target:
+        # Non-interactive default
+        target = 'all'
     
-    # Detect provider
-    click.echo("\nWhat do you use?")
-    click.echo("  1. openai-compatible (default)")
-    click.echo("  2. anthropic")
-    click.echo("  3. gemini")
-    provider_choice = click.prompt("Select", type=int, default=1)
+    # Auto-detect provider before any prompts
+    detected_provider, detected_keys, selected_key_name, warning = auto_detect_provider(
+        provider_flag=provider,
+        can_prompt=can_prompt
+    )
     
-    provider_map = {
-        1: 'openai-compatible',
-        2: 'anthropic',
-        3: 'gemini'
-    }
-    provider = provider_map.get(provider_choice, 'openai-compatible')
+    # If warning and cannot continue, exit
+    if warning and not can_prompt:
+        if "not found" in warning.lower() or "invalid" in warning.lower():
+            click.echo(f"\n❌ {warning}")
+            if selected_key_name:
+                click.echo(f"   Set {selected_key_name} or run with -i for interactive mode")
+            sys.exit(2)
+    
+    # Interactive provider selection (only with -i flag)
+    if not provider and interactive_flag:
+        click.echo("\nWhat do you use?")
+        click.echo("  1. openai-compatible (default)")
+        click.echo("  2. anthropic")
+        click.echo("  3. gemini")
+        provider_choice = click.prompt("Select", type=int, default=1)
+        
+        provider_map = {
+            1: 'openai-compatible',
+            2: 'anthropic',
+            3: 'gemini'
+        }
+        detected_provider = provider_map.get(provider_choice, 'openai-compatible')
+    
+    # Use detected provider
+    provider = detected_provider
     
     # Load saved config first
     saved_config = load_saved_config()
     
     # Auto-detect config from env vars
     config = Config.auto_detect(provider)
+    
+    # Override with model if provided
+    if model:
+        config.model = model
     
     # If saved config exists, use it to fill in missing values
     if saved_config:
@@ -88,45 +177,42 @@ def doctor(target: Optional[str]):
         if saved_config.get('baseUrl') and not config.base_url:
             config.base_url = saved_config['baseUrl']
     
-    # If still missing config, prompt for it
+    # If still missing config, prompt for it (only if allowed)
     prompted_api_key = None
     prompted_base_url = None
     
     if not config.is_valid():
+        if not can_prompt:
+            # Cannot prompt - exit with clear message
+            missing_vars = config.get_missing_vars()
+            click.echo(f"\n❌ Missing configuration: {missing_vars}")
+            click.echo(f"   Set environment variable(s) or run with -i for interactive mode")
+            sys.exit(2)
+        
         click.echo("\n⚙️  Configuration needed\n")
         
-        # Prompt for API key if missing
+        # Prompt for API key if missing (essential prompt)
         if not config.api_key:
             prompted_api_key = getpass.getpass('API key not found. Paste your API key (input will be hidden): ')
             config.api_key = prompted_api_key
         
-        # Prompt for base URL if missing
+        # Auto-fill base URL if missing (no prompt - use provider defaults)
         if not config.base_url:
-            default_url = 'https://api.anthropic.com' if provider == 'anthropic' else \
-                          'https://generativelanguage.googleapis.com' if provider == 'gemini' else \
-                          'https://api.openai.com'
-            
-            prompted_base_url = click.prompt(f'API URL? (Enter for {default_url})', 
-                                            default=default_url, 
-                                            show_default=False)
-            config.base_url = prompted_base_url
-        
-        # Ask if user wants to save config
-        if prompted_api_key or prompted_base_url:
-            save_answer = click.prompt('Save for next time? (y/N)', 
-                                      default='n', 
-                                      show_default=False)
-            if save_answer.lower() == 'y':
-                save_config(
-                    api_key=prompted_api_key or config.api_key,
-                    base_url=prompted_base_url or config.base_url
-                )
-                click.echo('✓ Configuration saved to ~/.ai-patch/config.json\n')
+            if provider == 'anthropic':
+                config.base_url = 'https://api.anthropic.com'
+            elif provider == 'gemini':
+                config.base_url = 'https://generativelanguage.googleapis.com'
+            else:
+                config.base_url = 'https://api.openai.com'
     
-    # Final validation - if still invalid after prompts, user likely cancelled
+    # Final validation - if still invalid, exit
     if not config.is_valid():
         click.echo("\n❌ Missing configuration")
-        sys.exit(1)
+        sys.exit(2)
+    
+    # Display warning if one was generated
+    if warning and can_prompt:
+        click.echo(f"\n⚠️  {warning}")
     
     click.echo(f"\n✓ Detected: {config.base_url}")
     click.echo(f"✓ Provider: {provider}")
@@ -146,10 +232,23 @@ def doctor(target: Optional[str]):
     # Save report
     report_dir = save_report(report_data)
     
+    # Print inline diagnosis
+    print_diagnosis(report_data)
+    
     # Display summary
     display_summary(report_data, report_dir)
     
-    # Finish with next step
+    # Handle config saving (only via flags)
+    if save or save_key:
+        saved_fields = save_config(
+            api_key=config.api_key if save_key else None,
+            base_url=config.base_url if (save or save_key) else None,
+            provider=provider if (save or save_key) else None
+        )
+        if saved_fields:
+            click.echo(f"\n✓ Saved config: {', '.join(saved_fields)}")
+    
+    # Exit with appropriate code
     if report_data['summary']['status'] == 'success':
         sys.exit(0)
     else:
@@ -286,9 +385,10 @@ def run_checks(target: str, config: Config, provider: str) -> Dict[str, Any]:
 
 
 def save_report(report_data: Dict[str, Any]) -> Path:
-    """Save report to ai-patch-reports directory."""
+    """Save report to ai-patch-reports directory with latest pointer."""
     timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
-    report_dir = Path.cwd() / "ai-patch-reports" / timestamp
+    reports_base = Path.cwd() / "ai-patch-reports"
+    report_dir = reports_base / timestamp
     report_dir.mkdir(parents=True, exist_ok=True)
     
     # Save JSON
@@ -303,20 +403,143 @@ def save_report(report_data: Dict[str, Any]) -> Path:
     with open(md_path, 'w') as f:
         f.write(md_content)
     
+    # Create latest pointer
+    latest_symlink = reports_base / "latest"
+    latest_json = reports_base / "latest.json"
+    
+    # Try symlink first
+    try:
+        # Remove existing symlink or directory (including broken symlinks)
+        if latest_symlink.is_symlink():
+            latest_symlink.unlink()
+        elif latest_symlink.exists():
+            latest_symlink.unlink()
+        latest_symlink.symlink_to(timestamp, target_is_directory=True)
+    except (OSError, NotImplementedError):
+        # Symlink failed (Windows or permissions) - use latest.json
+        with open(latest_json, 'w') as f:
+            json.dump({"latest": timestamp}, f)
+    
     return report_dir
 
 
 def find_latest_report() -> Optional[Path]:
-    """Find the latest report directory."""
+    """Find the latest report directory.
+    
+    Resolution order:
+    1. latest/report.json (symlink)
+    2. latest.json -> timestamp dir
+    3. fallback: newest directory by mtime
+    """
     reports_dir = Path.cwd() / "ai-patch-reports"
     if not reports_dir.exists():
         return None
     
-    dirs = sorted([d for d in reports_dir.iterdir() if d.is_dir()], reverse=True)
-    if not dirs:
-        return None
+    # Try symlink first
+    latest_symlink = reports_dir / "latest"
+    if latest_symlink.is_symlink() or (latest_symlink.exists() and latest_symlink.is_dir()):
+        report_json = latest_symlink / "report.json"
+        if report_json.exists():
+            return report_json
     
-    return dirs[0] / "report.json"
+    # Try latest.json
+    latest_json = reports_dir / "latest.json"
+    if latest_json.exists():
+        try:
+            with open(latest_json, 'r') as f:
+                data = json.load(f)
+                timestamp = data.get('latest')
+                if timestamp:
+                    report_json = reports_dir / timestamp / "report.json"
+                    if report_json.exists():
+                        return report_json
+        except Exception:
+            pass
+    
+    # Fallback: find newest by mtime
+    try:
+        dirs = [d for d in reports_dir.iterdir() if d.is_dir() and d.name != 'latest']
+        if not dirs:
+            return None
+        
+        # Sort by modification time
+        newest = max(dirs, key=lambda d: d.stat().st_mtime)
+        report_json = newest / "report.json"
+        if report_json.exists():
+            return report_json
+    except Exception:
+        pass
+    
+    return None
+
+
+def print_diagnosis(report_data: Dict[str, Any]) -> None:
+    """Print inline diagnosis."""
+    summary = report_data['summary']
+    status = summary['status']
+    checks = report_data['checks']
+    
+    # Status emoji and message
+    status_emoji = {
+        'success': '✅',
+        'warning': '⚠️',
+        'error': '❌'
+    }
+    
+    click.echo(f"\n{status_emoji.get(status, '•')} Status: {status.upper()}")
+    
+    # Organize findings into three buckets
+    detected = []
+    not_detected = []
+    not_observable = []
+    
+    for check_name, check_result in checks.items():
+        findings = check_result.get('findings', [])
+        check_not_detected = check_result.get('not_detected', [])
+        check_not_observable = check_result.get('not_observable', [])
+        
+        for finding in findings:
+            severity = finding.get('severity', 'info')
+            message = finding.get('message', '')
+            
+            # Detected items (with evidence)
+            if message:
+                detected.append((severity, check_name, message))
+        
+        # Aggregate not detected and not observable items
+        not_detected.extend(check_not_detected)
+        for item in check_not_observable:
+            if item not in not_observable:
+                not_observable.append(item)
+    
+    # Detected section
+    if detected:
+        click.echo("\nDetected:")
+        for severity, check_name, message in detected:
+            click.echo(f"  • [{check_name}] {message}")
+    else:
+        click.echo("\nDetected:")
+        click.echo("  • No issues detected")
+    
+    # Not detected section
+    click.echo("\nNot detected:")
+    if not_detected:
+        for item in not_detected:
+            click.echo(f"  • {item}")
+    else:
+        click.echo("  • (No explicit checks for absent items in this run)")
+    
+    # Not observable section (only if status != success)
+    if status != 'success' and not_observable:
+        click.echo("\nNot observable from provider probe:")
+        for item in not_observable:
+            click.echo(f"  • {item}")
+    
+    # Conditional note
+    if status != 'success':
+        click.echo("\nNote:")
+        click.echo("Here's exactly what I can see from the provider probe.")
+        click.echo("Here's what I cannot see without real traffic.")
 
 
 def display_summary(report_data: Dict[str, Any], report_dir: Path):
@@ -324,25 +547,35 @@ def display_summary(report_data: Dict[str, Any], report_dir: Path):
     summary = report_data['summary']
     status = summary['status']
     
-    # Status emoji
-    status_emoji = {
-        'success': '✅',
-        'warning': '⚠️',
-        'error': '❌'
-    }
+    # Show file path
+    reports_base = Path.cwd() / "ai-patch-reports"
+    latest_path = reports_base / "latest"
     
-    click.echo(f"\n{status_emoji.get(status, '•')} {status.upper()}")
-    click.echo(f"\n📊 Report saved: {report_dir.relative_to(Path.cwd())}")
-    click.echo(f"\n→ Next: {summary['next_step']}")
-    click.echo()
+    if latest_path.exists():
+        display_path = "./ai-patch-reports/latest/report.md"
+    else:
+        display_path = f"./{report_dir.relative_to(Path.cwd())}/report.md"
     
-    # Add Badgr nudge if status is not success
+    click.echo(f"\n📊 Report: {display_path}")
+    
+    # Badgr messaging - only when status != success
     if status != 'success':
-        click.echo('💡 This kind of issue is hard to debug after the fact.')
-        click.echo('AI Badgr keeps a per-request receipt (latency, retries, cost) for real traffic.')
-        click.echo()
+        # Check if there are any "not observable" items
+        has_not_observable = any(
+            check.get('not_observable', []) for check in checks.values()
+        )
+        
+        if has_not_observable:
+            # Get the first not observable item for specific messaging
+            specific_item = 'missing data'
+            for check_name, check_result in checks.items():
+                not_obs = check_result.get('not_observable', [])
+                if not_obs:
+                    specific_item = not_obs[0].lower()
+                    break
+            click.echo(f"\nTo observe {specific_item}, run one real request through the receipt gateway (2-minute base_url swap).")
     
-    click.echo("Generated by AI Patch — re-run: pipx run ai-patch")
+    click.echo("\nGenerated by AI Patch — re-run: pipx run ai-patch")
 
 
 if __name__ == '__main__':

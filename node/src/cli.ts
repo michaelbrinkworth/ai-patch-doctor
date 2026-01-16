@@ -10,7 +10,7 @@ import * as path from 'path';
 import * as readline from 'readline';
 
 // Import from shared code (relative path to ai-patch-shared)
-import { Config, loadSavedConfig, saveConfig } from '../config';
+import { Config, loadSavedConfig, saveConfig, autoDetectProvider } from '../config';
 import { ReportGenerator } from '../report';
 import { checkStreaming } from '../checks/streaming';
 import { checkRetries } from '../checks/retries';
@@ -31,6 +31,38 @@ interface CheckResult {
 
 interface Checks {
   [key: string]: CheckResult;
+}
+
+/**
+ * Determine if essential prompting is allowed (e.g., API key).
+ * 
+ * Returns true when: isTTY AND NOT ciFlag (frictionless mode)
+ * If interactiveFlag is set but not TTY: print error and exit 2
+ * In --ci: never prompt
+ * 
+ * Note: This is for ESSENTIAL prompts only (API key).
+ * For preference menus (target, provider), use interactiveFlag directly.
+ */
+function shouldPrompt(interactiveFlag: boolean, ciFlag: boolean): boolean {
+  const isTTY = process.stdin.isTTY && process.stdout.isTTY;
+  
+  // CI mode never prompts
+  if (ciFlag) {
+    return false;
+  }
+  
+  // Interactive mode requested
+  if (interactiveFlag) {
+    if (!isTTY) {
+      console.log('❌ Error: Interactive mode (-i) requested but not running in a TTY');
+      console.log('   Run without -i for non-interactive mode, or run in a terminal');
+      process.exit(2);
+    }
+    return true;
+  }
+  
+  // Default: allow essential prompts in TTY (frictionless mode)
+  return isTTY;
 }
 
 /**
@@ -96,24 +128,45 @@ program
 // Default command (doctor mode)
 program
   .command('doctor', { isDefault: true })
-  .description('Run interactive diagnosis (default command)')
+  .description('Run diagnosis (non-interactive by default)')
   .option('--target <type>', 'Specific target to check', undefined)
+  .option('-i, --interactive', 'Enable interactive prompts (requires TTY)')
+  .option('--ci', 'CI mode: never prompt, fail fast on missing config')
+  .option('--provider <name>', 'Specify provider explicitly (openai-compatible, anthropic, gemini)')
+  .option('--model <name>', 'Specify model name')
+  .option('--save', 'Save non-secret config (base_url, provider)')
+  .option('--save-key', 'Save API key (requires --force)')
+  .option('--force', 'Required with --save-key to confirm key storage')
   .action(async (options) => {
-    console.log('🔍 AI Patch Doctor - Interactive Mode\n');
-
-    const rl = readline.createInterface({
-      input: process.stdin,
-      output: process.stdout,
-    });
-
-    const question = (query: string): Promise<string> => {
-      return new Promise((resolve) => rl.question(query, resolve));
-    };
-
+    // Check if prompting is allowed
+    const canPrompt = shouldPrompt(options.interactive, options.ci);
+    
+    // Validate --save-key requires --force
+    if (options.saveKey && !options.force) {
+      console.log('❌ Error: --save-key requires --force flag');
+      console.log('   Example: ai-patch doctor --save-key --force');
+      process.exit(2);
+    }
+    
+    // Welcome message (only in explicit interactive mode)
+    if (options.interactive) {
+      console.log('🔍 AI Patch Doctor - Interactive Mode\n');
+    }
+    
     let target = options.target;
+    let provider = options.provider;
+    
+    // Interactive questions for target (only with -i flag)
+    if (!target && options.interactive) {
+      const rl = readline.createInterface({
+        input: process.stdin,
+        output: process.stdout,
+      });
 
-    // Interactive questions
-    if (!target) {
+      const question = (query: string): Promise<string> => {
+        return new Promise((resolve) => rl.question(query, resolve));
+      };
+
       console.log("What's failing?");
       console.log('  1. streaming / SSE stalls / partial output');
       console.log('  2. retries / 429 / rate-limit chaos');
@@ -131,30 +184,71 @@ program
         '': 'all',
       };
       target = targetMap[choice.trim()] || 'all';
+      
+      rl.close();
+    } else if (!target) {
+      // Non-interactive default
+      target = 'all';
     }
+    
+    // Auto-detect provider before any prompts
+    const [detectedProvider, detectedKeys, selectedKeyName, warning] = autoDetectProvider(
+      provider,
+      canPrompt
+    );
+    
+    // If warning and cannot continue, exit
+    if (warning && !canPrompt) {
+      if (warning.toLowerCase().includes('not found') || warning.toLowerCase().includes('invalid')) {
+        console.log(`\n❌ ${warning}`);
+        if (selectedKeyName) {
+          console.log(`   Set ${selectedKeyName} or run with -i for interactive mode`);
+        }
+        process.exit(2);
+      }
+    }
+    
+    // Interactive provider selection (only with -i flag)
+    if (!provider && options.interactive) {
+      const rl = readline.createInterface({
+        input: process.stdin,
+        output: process.stdout,
+      });
 
-    // Detect provider
-    console.log('\nWhat do you use?');
-    console.log('  1. openai-compatible (default)');
-    console.log('  2. anthropic');
-    console.log('  3. gemini');
+      const question = (query: string): Promise<string> => {
+        return new Promise((resolve) => rl.question(query, resolve));
+      };
 
-    const providerChoice = await question('Select [1-3, default: 1]: ');
-    const providerMap: Record<string, string> = {
-      '1': 'openai-compatible',
-      '2': 'anthropic',
-      '3': 'gemini',
-      '': 'openai-compatible',
-    };
-    const provider = providerMap[providerChoice.trim()] || 'openai-compatible';
+      console.log('\nWhat do you use?');
+      console.log('  1. openai-compatible (default)');
+      console.log('  2. anthropic');
+      console.log('  3. gemini');
 
-    rl.close();
-
+      const providerChoice = await question('Select [1-3, default: 1]: ');
+      const providerMap: Record<string, string> = {
+        '1': 'openai-compatible',
+        '2': 'anthropic',
+        '3': 'gemini',
+        '': 'openai-compatible',
+      };
+      provider = providerMap[providerChoice.trim()] || detectedProvider;
+      
+      rl.close();
+    } else {
+      // Use detected provider
+      provider = detectedProvider;
+    }
+    
     // Load saved config first
     let savedConfig = loadSavedConfig();
     
     // Auto-detect config from env vars
     const config = Config.autoDetect(provider);
+    
+    // Override with model if provided
+    if (options.model) {
+      config.model = options.model;
+    }
     
     // If saved config exists, use it to fill in missing values
     if (savedConfig) {
@@ -165,12 +259,20 @@ program
         config.baseUrl = savedConfig.baseUrl;
       }
     }
-
-    // If still missing config, prompt for it
+    
+    // If still missing config, prompt for it (only if allowed)
     let promptedApiKey: string | undefined;
     let promptedBaseUrl: string | undefined;
     
     if (!config.isValid()) {
+      if (!canPrompt) {
+        // Cannot prompt - exit with clear message
+        const missingVars = config.getMissingVars();
+        console.log(`\n❌ Missing configuration: ${missingVars}`);
+        console.log(`   Set environment variable(s) or run with -i for interactive mode`);
+        process.exit(2);
+      }
+      
       const rl2 = readline.createInterface({
         input: process.stdin,
         output: process.stdout,
@@ -182,44 +284,35 @@ program
 
       console.log('\n⚙️  Configuration needed\n');
       
-      // Prompt for API key if missing
+      // Prompt for API key if missing (essential prompt)
       if (!config.apiKey) {
         promptedApiKey = await promptHidden('API key not found. Paste your API key (input will be hidden): ');
         config.apiKey = promptedApiKey;
       }
       
-      // Prompt for base URL if missing
+      // Auto-fill base URL if missing (no prompt - use provider defaults)
       if (!config.baseUrl) {
-        const defaultUrl = provider === 'anthropic' 
-          ? 'https://api.anthropic.com'
-          : provider === 'gemini'
-          ? 'https://generativelanguage.googleapis.com'
-          : 'https://api.openai.com';
-        
-        const urlAnswer = await question2(`API URL? (Enter for ${defaultUrl}): `);
-        promptedBaseUrl = urlAnswer.trim() || defaultUrl;
-        config.baseUrl = promptedBaseUrl;
-      }
-      
-      // Ask if user wants to save config
-      if (promptedApiKey || promptedBaseUrl) {
-        const saveAnswer = await question2('Save for next time? (y/N): ');
-        if (saveAnswer.trim().toLowerCase() === 'y') {
-          saveConfig({
-            apiKey: promptedApiKey || config.apiKey,
-            baseUrl: promptedBaseUrl || config.baseUrl
-          });
-          console.log('✓ Configuration saved to ~/.ai-patch/config.json\n');
+        if (provider === 'anthropic') {
+          config.baseUrl = 'https://api.anthropic.com';
+        } else if (provider === 'gemini') {
+          config.baseUrl = 'https://generativelanguage.googleapis.com';
+        } else {
+          config.baseUrl = 'https://api.openai.com';
         }
       }
       
       rl2.close();
     }
 
-    // Final validation - if still invalid after prompts, user likely cancelled
+    // Final validation - if still invalid, exit
     if (!config.isValid()) {
       console.log('\n❌ Missing configuration');
-      process.exit(1);
+      process.exit(2);
+    }
+    
+    // Display warning if one was generated
+    if (warning && canPrompt) {
+      console.log(`\n⚠️  ${warning}`);
     }
 
     console.log(`\n✓ Detected: ${config.baseUrl}`);
@@ -240,8 +333,23 @@ program
     // Save report
     const reportDir = saveReport(reportData);
 
+    // Print inline diagnosis
+    printDiagnosis(reportData);
+
     // Display summary
     displaySummary(reportData, reportDir);
+    
+    // Handle config saving (only via flags)
+    if (options.save || options.saveKey) {
+      const savedFields = saveConfig({
+        apiKey: options.saveKey ? config.apiKey : undefined,
+        baseUrl: (options.save || options.saveKey) ? config.baseUrl : undefined,
+        provider: (options.save || options.saveKey) ? provider : undefined
+      });
+      if (savedFields.length > 0) {
+        console.log(`\n✓ Saved config: ${savedFields.join(', ')}`);
+      }
+    }
 
     // Exit with appropriate code
     if (reportData.summary.status === 'success') {
@@ -384,8 +492,9 @@ async function runChecks(target: string, config: Config, provider: string): Prom
 }
 
 function saveReport(reportData: any): string {
-  const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
-  const reportDir = path.join(process.cwd(), 'ai-patch-reports', timestamp);
+  const timestamp = formatTimestamp(new Date());
+  const reportsBase = path.join(process.cwd(), 'ai-patch-reports');
+  const reportDir = path.join(reportsBase, timestamp);
 
   fs.mkdirSync(reportDir, { recursive: true });
 
@@ -399,7 +508,37 @@ function saveReport(reportData: any): string {
   const mdContent = reportGen.generateMarkdown(reportData);
   fs.writeFileSync(mdPath, mdContent);
 
+  // Create latest pointer
+  const latestSymlink = path.join(reportsBase, 'latest');
+  const latestJson = path.join(reportsBase, 'latest.json');
+  
+  // Try symlink first
+  try {
+    // Check if symlink or directory exists and remove it
+    try {
+      const stats = fs.lstatSync(latestSymlink);
+      fs.unlinkSync(latestSymlink);
+    } catch (e) {
+      // Doesn't exist, that's fine
+    }
+    fs.symlinkSync(timestamp, latestSymlink, 'dir');
+  } catch (e) {
+    // Symlink failed (Windows or permissions) - use latest.json
+    fs.writeFileSync(latestJson, JSON.stringify({ latest: timestamp }));
+  }
+
   return reportDir;
+}
+
+function formatTimestamp(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  const hours = String(date.getHours()).padStart(2, '0');
+  const minutes = String(date.getMinutes()).padStart(2, '0');
+  const seconds = String(date.getSeconds()).padStart(2, '0');
+  
+  return `${year}${month}${day}-${hours}${minutes}${seconds}`;
 }
 
 function findLatestReport(): string | null {
@@ -409,40 +548,180 @@ function findLatestReport(): string | null {
     return null;
   }
 
-  const dirs = fs
-    .readdirSync(reportsDir)
-    .filter((f) => fs.statSync(path.join(reportsDir, f)).isDirectory())
-    .sort()
-    .reverse();
-
-  if (dirs.length === 0) {
-    return null;
+  // Try symlink first
+  const latestSymlink = path.join(reportsDir, 'latest');
+  try {
+    if (fs.existsSync(latestSymlink)) {
+      const reportJson = path.join(latestSymlink, 'report.json');
+      if (fs.existsSync(reportJson)) {
+        return reportJson;
+      }
+    }
+  } catch (e) {
+    // Ignore
   }
 
-  return path.join(reportsDir, dirs[0], 'report.json');
+  // Try latest.json
+  const latestJson = path.join(reportsDir, 'latest.json');
+  if (fs.existsSync(latestJson)) {
+    try {
+      const data = JSON.parse(fs.readFileSync(latestJson, 'utf-8'));
+      const timestamp = data.latest;
+      if (timestamp) {
+        const reportJson = path.join(reportsDir, timestamp, 'report.json');
+        if (fs.existsSync(reportJson)) {
+          return reportJson;
+        }
+      }
+    } catch (e) {
+      // Ignore
+    }
+  }
+
+  // Fallback: find newest by mtime
+  try {
+    const dirs = fs
+      .readdirSync(reportsDir)
+      .filter((f) => {
+        const fullPath = path.join(reportsDir, f);
+        return fs.statSync(fullPath).isDirectory() && f !== 'latest';
+      })
+      .map((f) => ({
+        name: f,
+        mtime: fs.statSync(path.join(reportsDir, f)).mtime.getTime()
+      }))
+      .sort((a, b) => b.mtime - a.mtime);
+
+    if (dirs.length > 0) {
+      const reportJson = path.join(reportsDir, dirs[0].name, 'report.json');
+      if (fs.existsSync(reportJson)) {
+        return reportJson;
+      }
+    }
+  } catch (e) {
+    // Ignore
+  }
+
+  return null;
 }
 
-function displaySummary(reportData: any, reportDir: string): void {
+function printDiagnosis(reportData: any): void {
   const summary = reportData.summary;
   const status = summary.status;
+  const checks = reportData.checks;
 
+  // Status emoji and message
   const statusEmoji: Record<string, string> = {
     success: '✅',
     warning: '⚠️',
     error: '❌',
   };
 
-  console.log(`\n${statusEmoji[status] || '•'} ${status.toUpperCase()}`);
-  console.log(`\n📊 Report saved: ${path.relative(process.cwd(), reportDir)}`);
-  console.log(`\n→ Next: ${summary.next_step}\n`);
-  
-  // Add Badgr nudge if status is not success
-  if (status !== 'success') {
-    console.log('💡 This kind of issue is hard to debug after the fact.');
-    console.log('AI Badgr keeps a per-request receipt (latency, retries, cost) for real traffic.\n');
+  console.log(`\n${statusEmoji[status] || '•'} Status: ${status.toUpperCase()}`);
+
+  // Organize findings into three buckets
+  const detected: Array<[string, string, string]> = [];
+  const notDetected: string[] = [];
+  const notObservable: string[] = [];
+
+  for (const checkName in checks) {
+    const checkResult = checks[checkName];
+    const findings = checkResult.findings || [];
+    const checkNotDetected = checkResult.not_detected || [];
+    const checkNotObservable = checkResult.not_observable || [];
+    
+    for (const finding of findings) {
+      const severity = finding.severity || 'info';
+      const message = finding.message || '';
+      
+      // Detected items (with evidence)
+      if (message) {
+        detected.push([severity, checkName, message]);
+      }
+    }
+    
+    // Aggregate not detected and not observable items
+    notDetected.push(...checkNotDetected);
+    checkNotObservable.forEach((item: string) => {
+      if (!notObservable.includes(item)) {
+        notObservable.push(item);
+      }
+    });
   }
-  
-  console.log('Generated by AI Patch — re-run: npx ai-patch');
+
+  // Detected section
+  if (detected.length > 0) {
+    console.log('\nDetected:');
+    detected.forEach(([severity, checkName, message]) => {
+      console.log(`  • [${checkName}] ${message}`);
+    });
+  } else {
+    console.log('\nDetected:');
+    console.log('  • No issues detected');
+  }
+
+  // Not detected section
+  console.log('\nNot detected:');
+  if (notDetected.length > 0) {
+    notDetected.forEach(item => console.log(`  • ${item}`));
+  } else {
+    console.log('  • (No explicit checks for absent items in this run)');
+  }
+
+  // Not observable section (only if status != success)
+  if (status !== 'success' && notObservable.length > 0) {
+    console.log('\nNot observable from provider probe:');
+    notObservable.forEach(item => console.log(`  • ${item}`));
+  }
+
+  // Conditional note
+  if (status !== 'success') {
+    console.log('\nNote:');
+    console.log("Here's exactly what I can see from the provider probe.");
+    console.log("Here's what I cannot see without real traffic.");
+  }
+}
+
+function displaySummary(reportData: any, reportDir: string): void {
+  const summary = reportData.summary;
+  const status = summary.status;
+  const checks = reportData.checks;
+
+  // Show file path
+  const reportsBase = path.join(process.cwd(), 'ai-patch-reports');
+  const latestPath = path.join(reportsBase, 'latest');
+
+  let displayPath: string;
+  if (fs.existsSync(latestPath)) {
+    displayPath = './ai-patch-reports/latest/report.md';
+  } else {
+    displayPath = `./${path.relative(process.cwd(), reportDir)}/report.md`;
+  }
+
+  console.log(`\n📊 Report: ${displayPath}`);
+
+  // Badgr messaging - only when status != success
+  if (status !== 'success') {
+    // Check if there are any "not observable" items that would benefit from Badgr
+    const hasNotObservable = Object.values(checks).some(
+      (check: any) => check.not_observable && check.not_observable.length > 0
+    );
+    
+    if (hasNotObservable) {
+      // Get the first not observable item for specific messaging
+      let specificItem = 'missing data';
+      for (const checkName in checks) {
+        const notObs = checks[checkName].not_observable || [];
+        if (notObs.length > 0) {
+          specificItem = notObs[0].toLowerCase();
+          break;
+        }
+      }
+      console.log(`\nTo observe ${specificItem}, run one real request through the receipt gateway (2-minute base_url swap).`);
+    }
+  }
+
+  console.log('\nGenerated by AI Patch — re-run: npx ai-patch');
 }
 
 program.parse();
