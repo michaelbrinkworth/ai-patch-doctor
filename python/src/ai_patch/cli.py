@@ -93,6 +93,12 @@ def doctor(
 ):
     """Run diagnosis (non-interactive by default)."""
     
+    # Validate conflicting flags
+    if interactive_flag and ci:
+        click.echo("❌ Error: Cannot use both --interactive (-i) and --ci flags together")
+        click.echo("   --interactive enables prompts, --ci disables prompts")
+        sys.exit(2)
+    
     # Check if prompting is allowed
     can_prompt = should_prompt(interactive_flag, ci)
     

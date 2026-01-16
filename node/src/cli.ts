@@ -163,6 +163,29 @@ program
   .option('--save-key', 'Save API key (requires --force)')
   .option('--force', 'Required with --save-key to confirm key storage')
   .action(async (options) => {
+    // Validate conflicting flags
+    if (options.interactive && options.ci) {
+      console.log('❌ Error: Cannot use both --interactive (-i) and --ci flags together');
+      console.log('   --interactive enables prompts, --ci disables prompts');
+      process.exit(2);
+    }
+    
+    // Validate target if provided
+    const validTargets = ['streaming', 'retries', 'cost', 'trace', 'prod', 'all'];
+    if (options.target && !validTargets.includes(options.target)) {
+      console.log(`❌ Error: Invalid value for '--target': '${options.target}' is not one of ${validTargets.map(t => `'${t}'`).join(', ')}`);
+      console.log('   Try --help for more information');
+      process.exit(2);
+    }
+    
+    // Validate provider if provided
+    const validProviders = ['openai-compatible', 'anthropic', 'gemini'];
+    if (options.provider && !validProviders.includes(options.provider)) {
+      console.log(`❌ Error: Invalid value for '--provider': '${options.provider}' is not one of ${validProviders.map(p => `'${p}'`).join(', ')}`);
+      console.log('   Try --help for more information');
+      process.exit(2);
+    }
+    
     // Check if prompting is allowed
     const canPrompt = shouldPrompt(options.interactive, options.ci);
     
