@@ -114,7 +114,7 @@ if command -v python3 &> /dev/null; then
         cd "$TEST_DIR" || exit 1
         
         if [ $INSTALL_STATUS -eq 0 ]; then
-            log_pass "Python module installed successfully"
+            log_info "Python module installed successfully"
         else
             log_info "Python module install failed - skipping Python tests"
             if [ -n "$VERBOSE" ]; then
@@ -123,10 +123,10 @@ if command -v python3 &> /dev/null; then
             PYTHON_CMD=""
         fi
     else
-        log_pass "Python found"
+        log_info "Python found and ready"
     fi
 else
-    log_fail "Python3 not found"
+    log_info "Python3 not found - skipping Python tests"
     PYTHON_CMD=""
 fi
 
@@ -140,7 +140,7 @@ if command -v node &> /dev/null; then
         cd "$TEST_DIR" || exit 1
         
         if [ $BUILD_STATUS -eq 0 ]; then
-            log_pass "Node CLI built successfully"
+            log_info "Node CLI built successfully"
         else
             log_info "Node CLI build failed - skipping Node tests"
             if [ -n "$VERBOSE" ]; then
@@ -149,10 +149,10 @@ if command -v node &> /dev/null; then
             NODE_CMD=""
         fi
     else
-        log_pass "Node found"
+        log_info "Node found and ready"
     fi
 else
-    log_fail "Node not found"
+    log_info "Node not found - skipping Node tests"
     NODE_CMD=""
 fi
 
@@ -160,7 +160,7 @@ fi
 HAS_API_KEY=false
 if check_api_key; then
     HAS_API_KEY=true
-    log_pass "API key detected"
+    log_info "API key detected"
 else
     log_info "No API key - some tests will be skipped"
 fi
@@ -250,14 +250,12 @@ if [ -n "$PYTHON_CMD" ]; then
             "Report:"
         
         # Check if report was created
+        log_test "Python: Report file created"
         if [ -f "ai-patch-reports/latest/report.md" ] || [ -f "ai-patch-reports/latest/report.json" ]; then
             log_pass "Python: Report file created"
-            TESTS_PASSED=$((TESTS_PASSED + 1))
         else
             log_fail "Python: Report file not found"
-            TESTS_FAILED=$((TESTS_FAILED + 1))
         fi
-        TOTAL_TESTS=$((TOTAL_TESTS + 1))
     fi
 else
     log_info "Skipping Python tests (Python not available)"
@@ -348,14 +346,12 @@ if [ -n "$NODE_CMD" ]; then
             "Report:"
         
         # Check if report was created
+        log_test "Node: Report file created"
         if [ -f "ai-patch-reports/latest/report.md" ] || [ -f "ai-patch-reports/latest/report.json" ]; then
             log_pass "Node: Report file created"
-            TESTS_PASSED=$((TESTS_PASSED + 1))
         else
             log_fail "Node: Report file not found"
-            TESTS_FAILED=$((TESTS_FAILED + 1))
         fi
-        TOTAL_TESTS=$((TOTAL_TESTS + 1))
     fi
 else
     log_info "Skipping Node tests (Node not available)"
@@ -380,7 +376,6 @@ if [ -n "$PYTHON_CMD" ] && [ -n "$NODE_CMD" ] && [ "$HAS_API_KEY" = true ]; then
     else
         log_fail "Cross: Output format mismatch"
     fi
-    TOTAL_TESTS=$((TOTAL_TESTS + 1))
 fi
 
 echo ""
