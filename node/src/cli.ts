@@ -110,6 +110,11 @@ function promptHidden(query: string): Promise<string> {
 /**
  * Generate a mock Badgr API key from an email address.
  * Format: badgr_live_xxxx where xxxx is derived from the email.
+ * 
+ * NOTE: This is a mock/demo implementation for the onboarding flow.
+ * The hash is intentionally simple since these keys are placeholders
+ * for the Badgr gateway. In production, the gateway would handle
+ * proper authentication and key management.
  */
 function generateBadgrKey(email: string): string {
   // Create a simple hash from the email for the suffix
@@ -139,6 +144,23 @@ function promptYesNo(query: string): Promise<boolean> {
     rl.question(query, (answer: string) => {
       rl.close();
       resolve(answer.trim().toLowerCase() === 'y');
+    });
+  });
+}
+
+/**
+ * Prompt user for text input.
+ */
+function promptText(query: string): Promise<string> {
+  return new Promise((resolve) => {
+    const rl = readline.createInterface({
+      input: process.stdin,
+      output: process.stdout,
+    });
+
+    rl.question(query, (answer: string) => {
+      rl.close();
+      resolve(answer.trim());
     });
   });
 }
@@ -333,22 +355,11 @@ program
                               provider === 'anthropic' ? 'Anthropic' : 
                               provider === 'gemini' ? 'Gemini' : 'Provider';
           
-          console.log(`\nOkay, you haven't set your ${providerName} key. Do you want to use AI Badgr instead? (y/N)`);
-          const useBadgr = await promptYesNo('');
+          const useBadgr = await promptYesNo(`\nOkay, you haven't set your ${providerName} key. Do you want to use AI Badgr instead? (y/N) `);
           
           if (useBadgr) {
             // Prompt for email
-            const rl = readline.createInterface({
-              input: process.stdin,
-              output: process.stdout,
-            });
-            
-            const email = await new Promise<string>((resolve) => {
-              rl.question('Enter your email address: ', (answer) => {
-                rl.close();
-                resolve(answer.trim());
-              });
-            });
+            const email = await promptText('Enter your email address: ');
             
             if (email) {
               // Generate Badgr key
@@ -361,8 +372,7 @@ program
               console.log('✓ Base URL set to: https://gateway.badgr.dev');
               
               // Ask if they want to save the config
-              console.log('\nDo you want to save this Badgr configuration to ~/.ai-patch/config.json? (y/N)');
-              const shouldSave = await promptYesNo('');
+              const shouldSave = await promptYesNo('\nDo you want to save this Badgr configuration to ~/.ai-patch/config.json? (y/N) ');
               
               if (shouldSave) {
                 const savedFields = saveConfig({

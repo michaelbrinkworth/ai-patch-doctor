@@ -62,6 +62,12 @@ describe('AI Patch Doctor - Badgr Onboarding', () => {
       expect(content).toContain('function promptYesNo');
     });
 
+    test('cli.ts contains promptText function', () => {
+      const cliPath = path.join(__dirname, 'node', 'src', 'cli.ts');
+      const content = fs.readFileSync(cliPath, 'utf8');
+      expect(content).toContain('function promptText');
+    });
+
     test('cli.ts contains AI Badgr onboarding logic', () => {
       const cliPath = path.join(__dirname, 'node', 'src', 'cli.ts');
       const content = fs.readFileSync(cliPath, 'utf8');
