@@ -60,6 +60,7 @@ coverage.xml
 .hypothesis/
 test.db
 *.db
+test-*.sh
 
 # AI Patch - generated reports
 ai-patch-reports/
