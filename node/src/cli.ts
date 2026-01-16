@@ -107,6 +107,42 @@ function promptHidden(query: string): Promise<string> {
   });
 }
 
+/**
+ * Generate a mock Badgr API key from an email address.
+ * Format: badgr_live_xxxx where xxxx is derived from the email.
+ */
+function generateBadgrKey(email: string): string {
+  // Create a simple hash from the email for the suffix
+  let hash = 0;
+  for (let i = 0; i < email.length; i++) {
+    const char = email.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash; // Convert to 32bit integer
+  }
+  
+  // Convert to positive number and use last 8 characters
+  const suffix = Math.abs(hash).toString(36).padStart(8, '0').slice(-8);
+  return `badgr_live_${suffix}`;
+}
+
+/**
+ * Prompt user with a yes/no question.
+ * Returns true for 'y', false for anything else.
+ */
+function promptYesNo(query: string): Promise<boolean> {
+  return new Promise((resolve) => {
+    const rl = readline.createInterface({
+      input: process.stdin,
+      output: process.stdout,
+    });
+
+    rl.question(query, (answer: string) => {
+      rl.close();
+      resolve(answer.trim().toLowerCase() === 'y');
+    });
+  });
+}
+
 program
   .name('ai-patch')
   .description('AI Patch - Fix-first incident patcher for AI API issues')
@@ -273,6 +309,7 @@ program
     // If still missing config, prompt for it (only if allowed)
     let promptedApiKey: string | undefined;
     let promptedBaseUrl: string | undefined;
+    let usedBadgrOnboarding = false;
 
     if (!config.isValid()) {
       if (!canPrompt) {
@@ -287,11 +324,73 @@ program
 
       // Prompt for API key if missing (essential prompt)
       if (!config.apiKey) {
-        config.apiKey = await promptHidden('API key not found. Paste your API key (input will be hidden): ');
+        const apiKey = await promptHidden('API key not found. Paste your API key (input will be hidden): ');
+        
+        // If user skips (empty input), offer AI Badgr
+        if (!apiKey || apiKey.trim() === '') {
+          // Get provider name for the message
+          const providerName = provider === 'openai-compatible' ? 'OpenAI' : 
+                              provider === 'anthropic' ? 'Anthropic' : 
+                              provider === 'gemini' ? 'Gemini' : 'Provider';
+          
+          console.log(`\nOkay, you haven't set your ${providerName} key. Do you want to use AI Badgr instead? (y/N)`);
+          const useBadgr = await promptYesNo('');
+          
+          if (useBadgr) {
+            // Prompt for email
+            const rl = readline.createInterface({
+              input: process.stdin,
+              output: process.stdout,
+            });
+            
+            const email = await new Promise<string>((resolve) => {
+              rl.question('Enter your email address: ', (answer) => {
+                rl.close();
+                resolve(answer.trim());
+              });
+            });
+            
+            if (email) {
+              // Generate Badgr key
+              const badgrKey = generateBadgrKey(email);
+              config.apiKey = badgrKey;
+              config.baseUrl = 'https://gateway.badgr.dev';
+              usedBadgrOnboarding = true;
+              
+              console.log(`\n✓ Generated AI Badgr key: ${badgrKey.substring(0, 20)}...`);
+              console.log('✓ Base URL set to: https://gateway.badgr.dev');
+              
+              // Ask if they want to save the config
+              console.log('\nDo you want to save this Badgr configuration to ~/.ai-patch/config.json? (y/N)');
+              const shouldSave = await promptYesNo('');
+              
+              if (shouldSave) {
+                const savedFields = saveConfig({
+                  apiKey: config.apiKey,
+                  baseUrl: config.baseUrl,
+                  provider: provider
+                });
+                if (savedFields.length > 0) {
+                  console.log(`✓ Saved config: ${savedFields.join(', ')}`);
+                }
+              }
+            } else {
+              console.log('\n❌ Email is required to use AI Badgr');
+              process.exit(2);
+            }
+          } else {
+            // User declined Badgr - provide helpful message and exit
+            console.log('\n❌ API key is required to run diagnostics');
+            console.log(`   Set ${config.getMissingVars()} or try again with your API key`);
+            process.exit(2);
+          }
+        } else {
+          config.apiKey = apiKey;
+        }
       }
 
       // Auto-fill base URL if missing (no prompt - use provider defaults)
-      if (!config.baseUrl) {
+      if (!config.baseUrl && !usedBadgrOnboarding) {
         if (provider === 'anthropic') {
           config.baseUrl = 'https://api.anthropic.com';
         } else if (provider === 'gemini') {
