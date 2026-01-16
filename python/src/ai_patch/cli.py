@@ -546,6 +546,7 @@ def display_summary(report_data: Dict[str, Any], report_dir: Path):
     """Display report summary."""
     summary = report_data['summary']
     status = summary['status']
+    checks = report_data.get('checks', {})
     
     # Show file path
     reports_base = Path.cwd() / "ai-patch-reports"
