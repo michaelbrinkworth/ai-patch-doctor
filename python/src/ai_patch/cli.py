@@ -193,8 +193,26 @@ def doctor(
         
         # Prompt for API key if missing (essential prompt)
         if not config.api_key:
-            prompted_api_key = getpass.getpass('API key not found. Paste your API key (input will be hidden): ')
-            config.api_key = prompted_api_key
+            # Check if we can safely prompt (TTY with echo off capability)
+            import warnings
+            with warnings.catch_warnings(record=True) as w:
+                warnings.simplefilter("always")
+                try:
+                    prompted_api_key = getpass.getpass('API key not found. Paste your API key (input will be hidden): ')
+                    # Check if GetPassWarning was raised
+                    if w and any(issubclass(warning.category, getpass.GetPassWarning) for warning in w):
+                        click.echo("\n❌ Error: Cannot safely hide API key input in this environment")
+                        if provider == 'anthropic':
+                            click.echo(f"   Set ANTHROPIC_API_KEY environment variable instead")
+                        elif provider == 'gemini':
+                            click.echo(f"   Set GEMINI_API_KEY environment variable instead")
+                        else:
+                            click.echo(f"   Set OPENAI_API_KEY environment variable instead")
+                        sys.exit(2)
+                    config.api_key = prompted_api_key
+                except Exception as e:
+                    click.echo(f"\n❌ Error: Cannot prompt for API key: {str(e)}")
+                    sys.exit(2)
         
         # Auto-fill base URL if missing (no prompt - use provider defaults)
         if not config.base_url:
@@ -388,15 +406,18 @@ def save_report(report_data: Dict[str, Any]) -> Path:
     report_dir = reports_base / timestamp
     report_dir.mkdir(parents=True, exist_ok=True)
     
+    # Sanitize report data before saving (remove any potential secrets)
+    sanitized_data = sanitize_report_data(report_data)
+    
     # Save JSON
     json_path = report_dir / "report.json"
     with open(json_path, 'w') as f:
-        json.dump(report_data, f, indent=2)
+        json.dump(sanitized_data, f, indent=2)
     
     # Save Markdown
     md_path = report_dir / "report.md"
     report_gen = ReportGenerator()
-    md_content = report_gen.generate_markdown(report_data)
+    md_content = report_gen.generate_markdown(sanitized_data)
     with open(md_path, 'w') as f:
         f.write(md_content)
     
@@ -418,6 +439,33 @@ def save_report(report_data: Dict[str, Any]) -> Path:
             json.dump({"latest": timestamp}, f)
     
     return report_dir
+
+
+def sanitize_report_data(data: Any) -> Any:
+    """Sanitize report data to remove any potential secrets or API keys.
+    
+    This is a deep sanitization that recursively checks all fields.
+    """
+    if not isinstance(data, (dict, list)):
+        return data
+    
+    if isinstance(data, list):
+        return [sanitize_report_data(item) for item in data]
+    
+    sanitized = {}
+    secret_fields = ['apikey', 'api_key', 'apikey', 'key', 'secret', 'token', 'password', 'authorization']
+    
+    for key, value in data.items():
+        lower_key = key.lower()
+        
+        # Skip fields that might contain secrets
+        if any(sf in lower_key for sf in secret_fields):
+            continue
+        
+        # Recursively sanitize nested objects
+        sanitized[key] = sanitize_report_data(value)
+    
+    return sanitized
 
 
 def find_latest_report() -> Optional[Path]:
@@ -543,6 +591,9 @@ def display_summary(report_data: Dict[str, Any], report_dir: Path):
     """Display report summary."""
     summary = report_data['summary']
     status = summary['status']
+    checks = report_data['checks']
+    provider = report_data['provider']
+    base_url = report_data['base_url']
     
     # Show file path
     reports_base = Path.cwd() / "ai-patch-reports"
@@ -557,20 +608,49 @@ def display_summary(report_data: Dict[str, Any], report_dir: Path):
     
     # Badgr messaging - only when status != success
     if status != 'success':
-        # Check if there are any "not observable" items
-        has_not_observable = any(
-            check.get('not_observable', []) for check in checks.values()
-        )
+        # Find most severe finding
+        most_severe_finding = ''
+        for check_name, check_result in checks.items():
+            findings = check_result.get('findings', [])
+            for finding in findings:
+                if finding.get('severity') in ['error', 'warning']:
+                    most_severe_finding = f"[{check_name}] {finding.get('message', '')}"
+                    if finding.get('severity') == 'error':
+                        break
+            if most_severe_finding and any(f.get('severity') == 'error' for f in findings):
+                break
         
-        if has_not_observable:
-            # Get the first not observable item for specific messaging
-            specific_item = 'missing data'
-            for check_name, check_result in checks.items():
-                not_obs = check_result.get('not_observable', [])
-                if not_obs:
-                    specific_item = not_obs[0].lower()
-                    break
-            click.echo(f"\nTo observe {specific_item}, run one real request through the receipt gateway (2-minute base_url swap).")
+        # Find what we can't see
+        cannot_see = ''
+        for check_name, check_result in checks.items():
+            not_obs = check_result.get('not_observable', [])
+            if not_obs:
+                cannot_see = not_obs[0]
+                break
+        if not cannot_see:
+            cannot_see = 'retry behavior, partial streams, concurrency'
+        
+        # Provider-specific env var
+        env_var = 'OPENAI_BASE_URL'
+        if provider == 'anthropic':
+            env_var = 'ANTHROPIC_BASE_URL'
+        elif provider == 'gemini':
+            env_var = 'GEMINI_BASE_URL'
+        
+        # Detect original base URL
+        original_base_url = base_url
+        
+        click.echo('\n' + '=' * 60)
+        if most_severe_finding:
+            click.echo(f"\nWhat I found: {most_severe_finding}")
+        click.echo(f"\nWhat I can't see: {cannot_see}")
+        click.echo('\nRun one request through Badgr gateway (copy/paste):')
+        click.echo('')
+        click.echo(f'export {env_var}="https://gateway.badgr.dev"')
+        click.echo('# Make one API call here (your code)')
+        click.echo(f'export {env_var}="{original_base_url}"')
+        click.echo('')
+        click.echo('=' * 60)
     
     click.echo("\nGenerated by AI Patch — re-run: pipx run ai-patch")
 
