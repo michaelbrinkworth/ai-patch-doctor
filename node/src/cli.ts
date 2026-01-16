@@ -66,13 +66,19 @@ function shouldPrompt(interactiveFlag: boolean, ciFlag: boolean): boolean {
 }
 
 /**
- * Prompt for hidden input (like password)
- * SECURITY: No echo, properly restore raw mode, clean up listeners
+ * Prompt for hidden input (like password).
+ * 
+ * SECURITY: No echo, properly restore raw mode, clean up listeners.
+ * - Characters are not displayed during input
+ * - Raw mode is enabled/disabled correctly
+ * - stdin listeners are cleaned up after completion
+ * - Only printable characters (ASCII >= 32) are accepted
  */
 function promptHidden(query: string): Promise<string> {
   return new Promise((resolve, reject) => {
     const stdin = process.stdin;
     const stdout = process.stdout;
+    const MIN_PRINTABLE_ASCII = 32; // Space character - minimum printable ASCII
     
     // Check if TTY is available
     if (!(stdin as any).isTTY) {
@@ -103,7 +109,7 @@ function promptHidden(query: string): Promise<string> {
           input = input.slice(0, -1);
         }
         // No visual feedback for backspace in hidden mode
-      } else if (c.charCodeAt(0) >= 32) {
+      } else if (c.charCodeAt(0) >= MIN_PRINTABLE_ASCII) {
         // Only accept printable characters (ASCII >= 32)
         // NO ECHO - just store the character
         input += c;

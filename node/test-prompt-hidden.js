@@ -12,7 +12,19 @@
  * The input should be displayed after you press Enter
  */
 
-// Mock implementation matching the one in cli.ts
+/**
+ * Prompt for hidden input (like password).
+ * 
+ * @param {string} query - The prompt text to display to the user
+ * @returns {Promise<string>} Promise that resolves with the hidden input
+ * @throws {Error} If not running in a TTY environment
+ * 
+ * SECURITY: No echo, properly restore raw mode, clean up listeners.
+ * - Characters are not displayed during input
+ * - Raw mode is enabled/disabled correctly
+ * - stdin listeners are cleaned up after completion
+ * - Only printable characters (ASCII >= 32) are accepted
+ */
 function promptHidden(query) {
   return new Promise((resolve, reject) => {
     const stdin = process.stdin;
@@ -83,7 +95,17 @@ function promptHidden(query) {
   });
 }
 
-// Test the function
+/**
+ * Test the promptHidden() function to verify security properties.
+ * 
+ * This function verifies:
+ * - No characters are echoed during input
+ * - Input is captured correctly
+ * - Raw mode is properly restored after completion
+ * 
+ * @async
+ * @returns {Promise<void>}
+ */
 async function testPromptHidden() {
   console.log('Testing promptHidden() function...\n');
   console.log('⚠️  SECURITY TEST: Characters should NOT be visible when you type');
