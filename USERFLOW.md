@@ -84,8 +84,8 @@ If missing API key in interactive mode, use `promptHidden()` to securely read AP
 ### Step 26: Handle Hidden Input
 Raw mode enabled on stdin, characters read one by one, backspace handled, no echo to terminal.
 
-### Step 27: Prompt for Missing Base URL
-If missing base URL, prompt with default based on provider (api.openai.com, api.anthropic.com, or generativelanguage.googleapis.com).
+### Step 27: Auto-Fill Missing Base URL
+If missing base URL, automatically set it based on provider (api.openai.com, api.anthropic.com, or generativelanguage.googleapis.com). No prompt required.
 
 ### Step 28: Final Configuration Validation
 Check if config is valid after prompting, exit with code 2 if still invalid.
@@ -208,8 +208,8 @@ If missing API key in interactive mode, use `getpass.getpass()` for secure hidde
 ### Step 26: Handle Hidden Input
 Getpass module reads password without echoing characters to terminal.
 
-### Step 27: Prompt for Missing Base URL
-If missing base URL, use `click.prompt()` with provider-specific default URL.
+### Step 27: Auto-Fill Missing Base URL
+If missing base URL, automatically set it based on provider. No prompt required - uses provider-specific default URL.
 
 ### Step 28: Final Configuration Validation
 Check `config.is_valid()` after prompting, call `sys.exit(2)` if still invalid.
