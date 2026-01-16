@@ -1,0 +1,16 @@
+#!/bin/bash
+echo "╔══════════════════════════════════════════════════════════════╗"
+echo "║          AI PATCH DOCTOR - CODE SCAN DEMONSTRATION           ║"
+echo "╚══════════════════════════════════════════════════════════════╝"
+echo ""
+echo "Repository: michaelbrinkworth/ai-patch-doctor"
+echo "Target: test-codebase directory"
+echo "Date: $(date)"
+echo ""
+echo "Running scan..."
+echo ""
+python -m ai_patch doctor --codebase test-codebase
+echo ""
+echo "╔══════════════════════════════════════════════════════════════╗"
+echo "║                     SCAN COMPLETE                            ║"
+echo "╚══════════════════════════════════════════════════════════════╝"
