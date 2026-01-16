@@ -92,7 +92,7 @@ def check(config: Config) -> Dict[str, Any]:
         status = 'fail'
         findings.append({
             'severity': 'error',
-            'message': f'Streaming timeout: {str(e)}. Check client timeout settings.'
+            'message': f'Streaming timeout: {str(e)}'
         })
     except httpx.HTTPStatusError as e:
         status = 'fail'
