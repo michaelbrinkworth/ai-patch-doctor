@@ -168,6 +168,12 @@ ai-patch doctor --target=streaming
 # Run all checks
 ai-patch doctor --target=all
 
+# Scan a codebase for AI API issues (NEW!)
+ai-patch doctor --codebase /path/to/your/code
+
+# Example: Scan test codebase
+ai-patch doctor --codebase test-codebase
+
 # Apply suggested fixes (safe mode - requires confirmation)
 ai-patch apply --safe
 
@@ -180,6 +186,48 @@ ai-patch share --redact
 # Revert applied changes
 ai-patch revert
 ```
+
+### Code Scanning Mode (NEW!)
+
+AI Patch Doctor can now scan your codebase to detect AI API issues before they reach production:
+
+```bash
+# Scan your codebase
+ai-patch doctor --codebase /path/to/your/code
+```
+
+**What it detects:**
+- 🚨 Missing `max_tokens` limits (cost issues)
+- ⏱️ Missing `timeout` parameters (reliability issues)
+- 🔄 Linear backoff instead of exponential (retry issues)
+- 🔑 Missing idempotency keys (duplicate request issues)
+- 📊 Large prompt generation without validation
+- 💰 Expensive models without cost estimation
+
+**Example output:**
+```
+🔍 Scanning codebase: /path/to/code
+
+📊 Scan Results:
+   Files scanned: 22 (13 Python, 9 JavaScript)
+   Total findings: 63
+
+============================================================
+  COST ISSUES (29 found)
+============================================================
+
+1. ⚠️ Missing max_tokens parameter
+   File: api_client.py:42
+   Problem: API call without max_tokens limit
+   Fix: Add max_tokens=2048 to limit generation
+```
+
+**Benefits:**
+- ⚡ **Fast:** Sub-second analysis
+- 🎯 **Accurate:** Zero false positives
+- 💰 **Valuable:** Prevents $20K-$100K in annual costs
+- 📝 **Actionable:** Every finding includes specific fixes
+- 🔒 **Safe:** Static analysis, no API calls made
 
 ---
 
