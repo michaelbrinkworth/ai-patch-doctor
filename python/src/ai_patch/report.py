@@ -181,7 +181,7 @@ class ReportGenerator:
         """Determine the recommended next step."""
         
         if status == 'success':
-            return "All checks passed."
+            return "All checks passed. Run 'ai-patch diagnose' for deeper analysis."
         
         # Find first failure
         for check_name, check_result in checks.items():
