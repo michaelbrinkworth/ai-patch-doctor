@@ -283,29 +283,8 @@ def doctor(
 @click.option('--safe', is_flag=True, help='Apply in safe mode (dry-run by default)')
 def apply(safe: bool):
     """Apply suggested fixes (experimental - not fully implemented in MVP)."""
-    if not safe:
-        click.echo("⚠️  Dry-run mode (default)")
-        click.echo("   Use --safe to apply changes")
-        click.echo()
-    
-    # Find latest report
-    report_path = find_latest_report()
-    if not report_path:
-        click.echo("❌ No report found. Run 'ai-patch doctor' first.")
-        sys.exit(1)
-    
-    with open(report_path, 'r') as f:
-        report = json.load(f)
-    
-    click.echo(f"📄 Applying fixes from: {report_path.parent.name}\n")
-    
-    # TODO: Implement actual apply logic
-    click.echo("✓ Generated local wrapper configs (not applied in dry-run mode)")
-    click.echo("  - timeout: 60s")
-    click.echo("  - keepalive: enabled")
-    click.echo("  - retry policy: exponential backoff")
-    click.echo()
-    click.echo("Run with --safe to apply these changes")
+    click.echo("❌ Apply functionality is not available in the free CLI. This tool diagnoses incidents only.")
+    sys.exit(1)
 
 
 @main.command()
