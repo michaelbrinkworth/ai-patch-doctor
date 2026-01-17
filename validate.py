@@ -45,13 +45,13 @@ def validate_python_structure():
         "src/ai_patch/__init__.py",
         "src/ai_patch/__main__.py",
         "src/ai_patch/cli.py",
-        "config.py",
-        "report.py",
-        "checks/__init__.py",
-        "checks/streaming.py",
-        "checks/retries.py",
-        "checks/cost.py",
-        "checks/trace.py",
+        "src/ai_patch/config.py",
+        "src/ai_patch/report.py",
+        "src/ai_patch/checks/__init__.py",
+        "src/ai_patch/checks/streaming.py",
+        "src/ai_patch/checks/retries.py",
+        "src/ai_patch/checks/cost.py",
+        "src/ai_patch/checks/trace.py",
         "tests/test_cli.py"
     ]
     

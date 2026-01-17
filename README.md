@@ -1,13 +1,13 @@
 # AI Patch Doctor 🔍⚕️
 
-**The open-source CLI tool for diagnosing and fixing AI API issues**
+**The open-source CLI tool for diagnosing AI API issues**
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Tests](https://img.shields.io/badge/tests-passing-brightgreen.svg)](./ai-patch.test.js)
 [![Python](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
 [![Node](https://img.shields.io/badge/node-14+-green.svg)](https://nodejs.org/)
 
-> Run the doctor. Fix your AI API issues in under 60 seconds.
+> Run the doctor. Diagnose your AI API issues in under 60 seconds.
 
 ## 🚀 Quick Start
 
@@ -19,7 +19,7 @@ pipx run ai-patch doctor
 npx ai-patch doctor
 ```
 
-That's it! The doctor will interactively diagnose your AI API setup and generate a detailed report with actionable fixes.
+That's it! The doctor will interactively diagnose your AI API setup and generate a detailed report.
 
 ---
 
@@ -40,18 +40,18 @@ That's it! The doctor will interactively diagnose your AI API setup and generate
 
 ## 🤔 What is AI Patch Doctor?
 
-AI Patch Doctor is a dual-language (Python + Node.js) command-line tool that helps developers **diagnose and fix common AI API issues** quickly and efficiently. Inspired by tools like `brew doctor` and `kubectl doctor`, it provides an interactive diagnostic experience that:
+AI Patch Doctor is a dual-language (Python + Node.js) command-line tool that helps developers **diagnose common AI API issues** quickly and efficiently. Inspired by tools like `brew doctor` and `kubectl doctor`, it provides an interactive diagnostic experience that:
 
 - 🔍 **Detects configuration issues** automatically
 - ⚡ **Identifies performance bottlenecks** (streaming, timeouts, retries)
-- 💰 **Prevents cost overruns** (token limits, runaway loops)
-- 📊 **Ensures proper traceability** (request IDs, correlation)
+- 💰 **Detects cost issues** (token limits, usage patterns)
+- 📊 **Checks traceability** (request IDs, correlation)
 
 Perfect for:
-- Debugging production AI API failures
+- Diagnosing production AI API failures
 - Validating development setups
-- Optimizing API call patterns
-- Ensuring best practices in AI integrations
+- Analyzing API call patterns
+- Understanding AI integration issues
 
 ---
 
@@ -68,8 +68,8 @@ Perfect for:
 
 - **Interactive Mode** - Simple 2-question flow to get started
 - **Auto-Detection** - Automatically detects your API configuration from environment variables
-- **Safe by Default** - Dry-run mode prevents accidental changes
-- **Detailed Reports** - JSON and Markdown reports with specific fix recommendations
+- **Safe by Default** - Read-only diagnostic tool
+- **Detailed Reports** - JSON and Markdown reports with specific findings
 - **Zero Duplication** - Shared codebase ensures Python and Node have identical behavior
 
 ### 🌐 Universal Compatibility
@@ -151,12 +151,12 @@ Select: 1
 
 📊 Report saved: ai-patch-reports/20260115-123456/
 
-⚠️ Issues Found:
-  1. SSE buffering detected (nginx proxy)
-  2. Missing X-Accel-Buffering header
+Detected:
+  • [streaming] TTFB: 6.2s (threshold: 5s)
+  • [streaming] Max chunk gap: 12.4s (>10s threshold)
 
-💡 Suggested Fix:
-  Add X-Accel-Buffering: no to proxy config
+Not detected:
+  • X-Accel-Buffering header
 ```
 
 ### Command-Line Options
@@ -168,17 +168,11 @@ ai-patch doctor --target=streaming
 # Run all checks
 ai-patch doctor --target=all
 
-# Apply suggested fixes (safe mode - requires confirmation)
-ai-patch apply --safe
-
 # Test a specific component
 ai-patch test --target=retries
 
 # Share report (redacted for privacy)
 ai-patch share --redact
-
-# Revert applied changes
-ai-patch revert
 ```
 
 ---
@@ -190,87 +184,40 @@ ai-patch revert
 **Diagnoses:** Server-Sent Events (SSE) stalls, buffering issues, chunk gaps, slow time-to-first-byte (TTFB)
 
 **Common Issues Detected:**
-- Nginx/Envoy proxy buffering blocking streaming responses
-- Client-side timeout issues
-- gzip/compression interfering with streaming
-- Missing HTTP headers for streaming
-
-**Example Fix:**
-```nginx
-# Add to nginx config
-proxy_buffering off;
-proxy_set_header X-Accel-Buffering no;
-```
+- ✅ Detected: nginx proxy buffering enabled
+- ✅ Detected: Missing X-Accel-Buffering header
+- ✅ Detected: Client-side timeout configuration
+- ✅ Detected: gzip/compression interfering with streaming
 
 ### 2. Retries Check
 
 **Diagnoses:** Rate limit (429) storms, retry chaos, exponential backoff issues
 
 **Common Issues Detected:**
-- Missing or improper retry-after header handling
-- Linear retry instead of exponential backoff
-- Retrying mid-stream (causing duplicate charges)
-- No retry cap (infinite retry loops)
-
-**Example Fix:**
-```python
-# Proper retry logic
-import time
-max_retries = 3
-for attempt in range(max_retries):
-    try:
-        response = api_call()
-        break
-    except RateLimitError as e:
-        if attempt == max_retries - 1:
-            raise
-        wait_time = 2 ** attempt  # Exponential backoff
-        time.sleep(wait_time)
-```
+- ✅ Detected: retry-after header present/absent
+- ✅ Detected: Rate limiting (HTTP 429)
+- ✅ Not detected: Linear retry patterns
+- ✅ Not detected: Retry cap configuration
 
 ### 3. Cost Check
 
 **Diagnoses:** Token usage spikes, runaway costs, missing guardrails
 
 **Common Issues Detected:**
-- No `max_tokens` limit set
-- Unbounded prompt sizes
-- Tool/function calling loops
-- Missing cost estimation before calls
-
-**Example Fix:**
-```python
-# Add token limits
-response = openai.ChatCompletion.create(
-    model="gpt-4",
-    messages=[...],
-    max_tokens=2048,  # Prevent runaway generation
-    temperature=0.7
-)
-```
+- ✅ Detected: max_tokens limit present/absent
+- ✅ Detected: Token usage in request
+- ✅ Not detected: Cost estimation before calls
+- ✅ Not detected: Unbounded prompt sizes
 
 ### 4. Traceability Check
 
 **Diagnoses:** Missing request IDs, duplicate requests, correlation gaps
 
 **Common Issues Detected:**
-- No idempotency keys
-- Missing request ID tracking
-- No correlation ID propagation
-- Duplicate request detection disabled
-
-**Example Fix:**
-```python
-# Add idempotency key
-import uuid
-response = openai.ChatCompletion.create(
-    model="gpt-4",
-    messages=[...],
-    headers={
-        "Idempotency-Key": str(uuid.uuid4())
-    }
-)
-```
+- ✅ Detected: Request ID present in response headers
+- ✅ Detected: Correlation ID tracking
+- ✅ Not detected: Idempotency keys
+- ✅ Not detected: Duplicate request detection
 
 ---
 
