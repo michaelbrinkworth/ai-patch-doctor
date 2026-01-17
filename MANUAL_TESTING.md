@@ -115,7 +115,8 @@ cd ..
 Verify Node.js setup:
 ```bash
 # Should compile TypeScript successfully
-ls -la node/dist/  # Check if build output exists
+ls -la node/dist/src/cli.js  # Check if build output exists
+node node/dist/src/cli.js --help  # Test the CLI
 ```
 
 ### 3. Verify Installation
@@ -126,8 +127,8 @@ ai-patch --help
 # OR use module form
 python3 -m ai_patch --help
 
-# Test Node CLI is accessible
-node node/src/cli.ts --help
+# Test Node CLI is accessible (after building)
+node node/dist/src/cli.js --help
 
 # You should see the help text with available commands
 ```
@@ -444,11 +445,11 @@ All tests are identical to Python version, just use Node.js commands:
 
 ```bash
 # Replace Python commands with Node equivalents:
-python3 -m ai_patch doctor     →    node node/src/cli.ts doctor
-python3 -m ai_patch test       →    node node/src/cli.ts test
-python3 -m ai_patch share      →    node node/src/cli.ts share
+python3 -m ai_patch doctor     →    node node/dist/src/cli.js doctor
+python3 -m ai_patch test       →    node node/dist/src/cli.js test
+python3 -m ai_patch share      →    node node/dist/src/cli.js share
 
-# Or if you've built and installed globally:
+# Or if installed via npm:
 ai-patch doctor
 ai-patch test --target=streaming
 ```
@@ -459,23 +460,23 @@ ai-patch test --target=streaming
 export OPENAI_API_KEY="sk-your-key-here"
 
 # Test 1: Interactive mode
-node node/src/cli.ts doctor -i
+node node/dist/src/cli.js doctor -i
 
 # Test 2: Non-interactive (default)
-node node/src/cli.ts doctor
+node node/dist/src/cli.js doctor
 
 # Test 3: CI mode
-node node/src/cli.ts doctor --ci
+node node/dist/src/cli.js doctor --ci
 
 # Test 4: Specific target
-node node/src/cli.ts doctor --target=streaming
+node node/dist/src/cli.js doctor --target=streaming
 
 # Test 5: Test command
-node node/src/cli.ts test --target=cost
+node node/dist/src/cli.js test --target=cost
 
 # Test 6: Share report
-node node/src/cli.ts doctor
-node node/src/cli.ts share
+node node/dist/src/cli.js doctor
+node node/dist/src/cli.js share
 ```
 
 ---
@@ -637,8 +638,8 @@ python3 -m ai_patch --help
 cd node
 npm run build
 
-# Use full path
-node node/src/cli.ts --help
+# Use compiled output
+node node/dist/src/cli.js --help
 ```
 
 ---
@@ -748,7 +749,7 @@ echo "✅ Python test passed"
 # Test Node version
 echo ""
 echo "3. Testing Node.js version..."
-node node/src/cli.ts doctor --target=streaming
+node node/dist/src/cli.js doctor --target=streaming
 echo "✅ Node.js test passed"
 
 # Test report generation
