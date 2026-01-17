@@ -680,6 +680,11 @@ function printDiagnosis(reportData: any): void {
     console.log('  • (No explicit checks for absent items in this run)');
   }
 
+  // Success message (RULE 6)
+  if (status === 'success') {
+    console.log('\nAll checks passed for this run. This tool does not monitor production.');
+  }
+
   // Not observable section (only if status != success)
   if (status !== 'success' && notObservable.length > 0) {
     console.log('\nNot observable from provider probe:');

@@ -559,6 +559,10 @@ def print_diagnosis(report_data: Dict[str, Any]) -> None:
     else:
         click.echo("  • (No explicit checks for absent items in this run)")
     
+    # Success message (RULE 6)
+    if status == 'success':
+        click.echo("\nAll checks passed for this run. This tool does not monitor production.")
+    
     # Not observable section (only if status != success)
     if status != 'success' and not_observable:
         click.echo("\nNot observable from provider probe:")
