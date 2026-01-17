@@ -128,6 +128,41 @@ def test_config_validation():
     print("✅ Config validation test passed")
 
 
+def test_no_next_step_in_report():
+    """Test that next_step field is not in report (removed per RULE 1)"""
+    print("Testing that next_step is removed from reports...")
+    
+    report_gen = ReportGenerator()
+    
+    # Create sample check results with failure
+    checks = {
+        'streaming': {
+            'status': 'fail',
+            'findings': [
+                {'severity': 'error', 'message': 'Stream timeout'}
+            ],
+            'metrics': {}
+        }
+    }
+    
+    report = report_gen.create_report(
+        target='streaming',
+        provider='openai-compatible',
+        base_url='https://api.openai.com',
+        checks=checks,
+        duration=1.5
+    )
+    
+    # next_step should not be in summary
+    assert 'next_step' not in report['summary'], "next_step should not be in report summary"
+    
+    # Verify summary only has expected fields
+    assert 'status' in report['summary'], "Should have status"
+    assert 'duration_seconds' in report['summary'], "Should have duration"
+    
+    print("✅ No next_step in report test passed")
+
+
 def run_all_tests():
     """Run all tests"""
     print("=" * 80)
@@ -139,7 +174,8 @@ def run_all_tests():
         test_config_auto_detect,
         test_report_generation,
         test_check_modules_import,
-        test_config_validation
+        test_config_validation,
+        test_no_next_step_in_report
     ]
     
     passed = 0

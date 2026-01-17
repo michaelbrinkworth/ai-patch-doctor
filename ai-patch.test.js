@@ -291,5 +291,79 @@ describe('AI Patch Doctor - Functional Tests', () => {
   });
 });
 
+describe('AI Patch Doctor - Feature Tests', () => {
+  test('Apply command is disabled in Python CLI', () => {
+    const cliPath = path.join(__dirname, 'python', 'src', 'ai_patch', 'cli.py');
+    const content = fs.readFileSync(cliPath, 'utf8');
+    
+    // Check that apply command exists
+    expect(content).toContain('def apply');
+    
+    // Check that it shows the error message
+    expect(content).toContain('Apply functionality is not available in the free CLI');
+    expect(content).toContain('This tool diagnoses incidents only');
+  });
+
+  test('Apply command is disabled in Node CLI', () => {
+    const cliPath = path.join(__dirname, 'node', 'src', 'cli.ts');
+    const content = fs.readFileSync(cliPath, 'utf8');
+    
+    // Check that apply command exists
+    expect(content).toContain('.command(\'apply\')');
+    
+    // Check that it shows the error message
+    expect(content).toContain('Apply functionality is not available in the free CLI');
+    expect(content).toContain('This tool diagnoses incidents only');
+  });
+
+  test('Python report generator does not have getNextStep method', () => {
+    const reportPath = path.join(__dirname, 'python', 'src', 'ai_patch', 'report.py');
+    const content = fs.readFileSync(reportPath, 'utf8');
+    
+    // Should not have _get_next_step method
+    expect(content).not.toContain('def _get_next_step');
+    expect(content).not.toContain('_get_next_step(');
+  });
+
+  test('Node report generator does not have getNextStep method', () => {
+    const reportPath = path.join(__dirname, 'node', 'report.ts');
+    const content = fs.readFileSync(reportPath, 'utf8');
+    
+    // Should not have getNextStep method
+    expect(content).not.toContain('getNextStep(');
+    expect(content).not.toContain('private getNextStep');
+  });
+
+  test('Python CLI has repeat pain footer', () => {
+    const cliPath = path.join(__dirname, 'python', 'src', 'ai_patch', 'cli.py');
+    const content = fs.readFileSync(cliPath, 'utf8');
+    
+    // Check for repeat pain footer
+    expect(content).toContain('This report explains this incident only');
+    expect(content).toContain('If this happens again in production');
+  });
+
+  test('Node CLI has repeat pain footer', () => {
+    const cliPath = path.join(__dirname, 'node', 'src', 'cli.ts');
+    const content = fs.readFileSync(cliPath, 'utf8');
+    
+    // Check for repeat pain footer
+    expect(content).toContain('This report explains this incident only');
+    expect(content).toContain('If this happens again in production');
+  });
+
+  test('README does not contain fix examples', () => {
+    const readmePath = path.join(__dirname, 'README.md');
+    const content = fs.readFileSync(readmePath, 'utf8');
+    
+    // Should not have "Example Fix:" sections
+    expect(content).not.toContain('Example Fix:');
+    
+    // Should have observation-based language
+    expect(content).toContain('Detected:');
+    expect(content).toContain('Not detected:');
+  });
+});
+
 console.log('\n✅ AI Patch Doctor Test Suite');
 console.log('Testing code reuse, structure, and functionality...\n');
