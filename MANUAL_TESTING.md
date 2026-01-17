@@ -76,6 +76,17 @@ You'll need API keys for testing. At minimum, you should have one of these:
 
 **Security Note**: Never commit API keys to git. They will be used only in your terminal session.
 
+**Tip**: Create a `.env.local` file (add to `.gitignore`) for easy testing:
+
+```bash
+# .env.local (DO NOT COMMIT)
+export OPENAI_API_KEY="sk-your-key-here"
+export OPENAI_BASE_URL="https://api.openai.com/v1"
+
+# Then source it before testing:
+# source .env.local
+```
+
 ---
 
 ## Setup
@@ -776,6 +787,43 @@ chmod +x test-all.sh
 ---
 
 ## Advanced Testing
+
+### Testing Without Real API Calls
+
+**Note**: AI Patch Doctor makes real API calls to diagnose issues. To test the CLI without making API calls, you can:
+
+1. **Test Help Commands** (no API calls):
+   ```bash
+   ai-patch --help
+   ai-patch doctor --help
+   ai-patch test --help
+   ```
+
+2. **Test Configuration Validation** (no API calls):
+   ```bash
+   # Test missing API key handling
+   unset OPENAI_API_KEY
+   ai-patch doctor --ci
+   # Should exit with code 2
+   ```
+
+3. **Test Interactive Prompts** (no API calls initially):
+   ```bash
+   # Start interactive mode
+   # Cancel with Ctrl+C before running checks
+   ai-patch doctor -i
+   ```
+
+4. **Use Invalid API Key** (will fail gracefully):
+   ```bash
+   export OPENAI_API_KEY="sk-test-invalid-key"
+   ai-patch doctor --target=streaming
+   # Will fail but test error handling
+   ```
+
+**For Full Testing**: You'll need a valid API key to test the actual diagnostic checks.
+
+---
 
 ### Performance Testing
 
