@@ -864,7 +864,7 @@ python3 -m ai_patch doctor
 # Should fail with exit code 2
 
 # Very long API key
-export OPENAI_API_KEY="sk-$(head -c 100 /dev/urandom | base64)"
+export OPENAI_API_KEY="sk-$(printf 'a%.0s' {1..100})"
 python3 -m ai_patch doctor
 # Should fail gracefully
 
@@ -889,10 +889,13 @@ This guide covers:
 - ✅ Both Python and Node.js implementations
 
 **Next Steps:**
-1. Start with the Quick Test Script
-2. Run through Test Scenarios 1-5
-3. Complete the Verification Checklist
-4. Report any issues found
+1. Start with the Quick Start (TL;DR) section
+2. Run through Python Tests 1-12 for comprehensive coverage
+3. Test the Node.js version using the equivalent commands
+4. Try the real-world Test Scenarios
+5. Complete the Verification Checklist
+6. Use the Quick Test Script for automation
+7. Report any issues found
 
 **Questions?**
 - Check the [README.md](./README.md) for feature documentation
