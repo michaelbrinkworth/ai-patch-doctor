@@ -85,12 +85,16 @@ If missing API key and TTY available (frictionless or interactive mode), use `pr
 Raw mode enabled on stdin, characters read one by one, backspace handled, no echo to terminal.
 
 ### Step 27: Auto-Fill Missing Base URL
-If missing base URL, automatically set it based on provider (api.openai.com, api.anthropic.com, or generativelanguage.googleapis.com). No prompt required.
+If missing base URL, automatically set it based on provider. No prompt required.
+- openai-compatible: `https://api.openai.com`
+- anthropic: `https://api.anthropic.com`
+- gemini: `https://generativelanguage.googleapis.com`
 
 ### Step 28: Final Configuration Validation
 Check if config is valid after prompting, exit with code 2 if still invalid.
 
 ### Step 29: Display Configuration Summary
+Display warning if one was generated during auto-detection (only if prompting allowed).
 Show detected base URL and provider with checkmarks: "✓ Detected: [url]" and "✓ Provider: [name]".
 
 ### Step 30: Display Check Start Message
@@ -118,10 +122,12 @@ Compute duration in seconds: `(Date.now() - startTime) / 1000`.
 Create `ReportGenerator` instance and call `createReport()` with target, provider, baseUrl, results, and duration.
 
 ### Step 38: Save Report to Disk
-Create timestamped directory, write JSON and Markdown reports, create 'latest' pointer.
+Sanitize report data to remove any potential secrets (apiKey, api_key, key, secret, token, password, authorization fields).
+Create timestamped directory, write sanitized JSON and Markdown reports.
+Create 'latest' pointer: try symlink first, fallback to latest.json on Windows or permission errors.
 
 ### Step 39: Print Inline Diagnosis
-Call `printDiagnosis()` to display status, top 5 findings sorted by severity, and next steps.
+Call `printDiagnosis()` to display status and all findings organized into three sections: detected (issues with evidence), not detected (checks that passed), and not observable (checks that couldn't be performed).
 
 ### Step 40: Exit with Status Code
 Exit with code 0 for success, 1 for diagnostic failures, or 2 for configuration errors.
@@ -209,12 +215,16 @@ If missing API key and TTY available (frictionless or interactive mode), use `ge
 Getpass module reads password without echoing characters to terminal.
 
 ### Step 27: Auto-Fill Missing Base URL
-If missing base URL, automatically set it based on provider. No prompt required - uses provider-specific default URL.
+If missing base URL, automatically set it based on provider. No prompt required.
+- openai-compatible: `https://api.openai.com`
+- anthropic: `https://api.anthropic.com`
+- gemini: `https://generativelanguage.googleapis.com`
 
 ### Step 28: Final Configuration Validation
 Check `config.is_valid()` after prompting, call `sys.exit(2)` if still invalid.
 
 ### Step 29: Display Configuration Summary
+Display warning if one was generated during auto-detection (only if prompting allowed).
 Use `click.echo()` to show detected base URL and provider with checkmarks.
 
 ### Step 30: Display Check Start Message
@@ -242,10 +252,12 @@ Compute duration in seconds: `time.time() - start_time`.
 Create `ReportGenerator` instance and call `create_report()` method with all diagnostic data.
 
 ### Step 38: Save Report to Disk
-Create timestamped directory using strftime, write JSON and Markdown reports, create 'latest' pointer.
+Sanitize report data to remove any potential secrets (apiKey, api_key, key, secret, token, password, authorization fields).
+Create timestamped directory using strftime, write sanitized JSON and Markdown reports.
+Create 'latest' pointer: try symlink first, fallback to latest.json on Windows or permission errors.
 
 ### Step 39: Print Inline Diagnosis
-Call `print_diagnosis()` to display status, top 5 findings sorted by severity, and next steps.
+Call `print_diagnosis()` to display status and all findings organized into three sections: detected (issues with evidence), not detected (checks that passed), and not observable (checks that couldn't be performed).
 
 ### Step 40: Exit with Status Code
 Exit with code 0 for success, 1 for diagnostic failures, or 2 for configuration errors using `sys.exit()`.
