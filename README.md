@@ -354,7 +354,17 @@ ai-patch-doctor/
 
 ## 🧪 Testing
 
-### Run All Tests
+### Manual Testing Guide
+
+**Want to test AI Patch Doctor manually?** See [MANUAL_TESTING.md](./MANUAL_TESTING.md) for:
+- 📖 Step-by-step testing instructions
+- 🚀 Quick start guide
+- 🔬 12+ test scenarios with commands
+- ✅ Verification checklist
+- 🛠️ Troubleshooting tips
+- 🔒 Security testing procedures
+
+### Run Automated Tests
 
 ```bash
 # Jest tests (Node)
