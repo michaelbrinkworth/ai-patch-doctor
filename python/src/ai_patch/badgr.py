@@ -293,7 +293,17 @@ class BadgrIntegration:
     ) -> VerificationMetrics:
         """Run provider test (mock implementation)"""
         # Simulate test (in real implementation, would make actual API call)
-        is_badgr = 'aibadgr.com' in base_url
+        # Use URL parsing to properly check hostname instead of substring match
+        is_badgr = False
+        try:
+            from urllib.parse import urlparse
+            parsed = urlparse(base_url)
+            is_badgr = parsed.hostname == 'aibadgr.com' or (
+                parsed.hostname and parsed.hostname.endswith('.aibadgr.com')
+            )
+        except Exception:
+            # Invalid URL, treat as non-badgr
+            is_badgr = False
         
         return VerificationMetrics(
             ttfb=800 if is_badgr else 2000,

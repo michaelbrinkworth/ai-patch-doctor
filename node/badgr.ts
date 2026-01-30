@@ -354,7 +354,15 @@ export class BadgrIntegration {
   }> {
     // Simulate test (in real implementation, would make actual API call)
     // For now, return mock data
-    const isBadgr = baseUrl.includes('aibadgr.com');
+    // Use URL parsing to properly check hostname instead of substring match
+    let isBadgr = false;
+    try {
+      const url = new URL(baseUrl);
+      isBadgr = url.hostname === 'aibadgr.com' || url.hostname.endsWith('.aibadgr.com');
+    } catch (e) {
+      // Invalid URL, treat as non-badgr
+      isBadgr = false;
+    }
     
     return {
       ttfb: isBadgr ? 800 : 2000,
