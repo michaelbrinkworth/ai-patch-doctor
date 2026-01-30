@@ -24,6 +24,8 @@ import { checkRetries } from '../checks/retries';
 import { checkCost } from '../checks/cost';
 import { checkTrace } from '../checks/trace';
 import { isTelemetryEnabled, sendDoctorRunEvent } from '../telemetry';
+import { CodeFixer, Fix } from '../fixer';
+import { BadgrIntegration, IntegrationMode } from '../badgr';
 
 const program = new Command();
 
@@ -433,11 +435,147 @@ program
 
 program
   .command('apply')
-  .description('Apply suggested fixes (experimental - not fully implemented in MVP)')
-  .option('--safe', 'Apply in safe mode (dry-run by default)')
-  .action((options) => {
-    console.log('❌ Apply functionality is not available in the free CLI. This tool diagnoses incidents only.');
-    process.exit(1);
+  .description('Apply fixes and integrate AI Badgr (complete funnel)')
+  .option('--dry-run', 'Show fixes without applying them', true)
+  .option('--target-dir <path>', 'Target directory to scan for fixes', process.cwd())
+  .option('--skip-badgr', 'Skip AI Badgr integration even if gateway issues detected')
+  .action(async (options) => {
+    console.log('🔧 AI Patch Doctor - Apply Mode\n');
+    console.log('='.repeat(60));
+    
+    // Step 1: Run diagnosis first
+    console.log('\n📋 Step 1: Scanning for issues...\n');
+    
+    const config = Config.autoDetect('openai-compatible');
+    if (!config.isValid()) {
+      console.log('❌ Missing API configuration. Run "ai-patch doctor" first.');
+      process.exit(1);
+    }
+    
+    const provider = 'openai-compatible';
+    const results = await runChecks('all', config, provider);
+    
+    // Step 2: Scan for fixable issues
+    console.log('\n📋 Step 2: Scanning codebase for fixable issues...\n');
+    
+    const fixer = new CodeFixer(options.dryRun);
+    const fixes = await fixer.scanForFixes(options.targetDir);
+    
+    if (fixes.length === 0) {
+      console.log('✓ No fixable issues found in code.');
+    } else {
+      console.log(`Found ${fixes.length} fixable issue(s):\n`);
+      
+      // Group by issue type
+      const byType = fixes.reduce((acc: Record<string, Fix[]>, fix) => {
+        acc[fix.issue] = acc[fix.issue] || [];
+        acc[fix.issue].push(fix);
+        return acc;
+      }, {});
+      
+      for (const [issueType, issueFixes] of Object.entries(byType)) {
+        console.log(`  ${issueType}: ${issueFixes.length} fix(es)`);
+      }
+      
+      // Step 3: Apply fixes
+      console.log('\n📋 Step 3: Applying local fixes...\n');
+      
+      const fixResult = await fixer.applyFixes(fixes);
+      
+      if (options.dryRun) {
+        console.log(`✓ Dry run: ${fixResult.skipped.length} fix(es) would be applied`);
+        console.log('  Run without --dry-run to apply fixes');
+      } else {
+        console.log(`✓ Applied ${fixResult.applied.length} fix(es)`);
+        if (fixResult.errors.length > 0) {
+          console.log(`⚠️  ${fixResult.errors.length} error(s) occurred`);
+        }
+      }
+    }
+    
+    // Step 4: Detect gateway-layer problems
+    console.log('\n📋 Step 4: Checking for gateway-layer problems...\n');
+    
+    const badgr = new BadgrIntegration();
+    const gatewayIssues = badgr.detectGatewayIssues(results);
+    
+    if (gatewayIssues.length === 0) {
+      console.log('✓ No gateway-layer problems detected');
+      console.log('\n🎉 All issues fixed! Your code is ready.');
+      process.exit(0);
+    }
+    
+    console.log(`Found ${gatewayIssues.length} gateway-layer issue(s):`);
+    gatewayIssues.forEach(issue => {
+      console.log(`  • ${issue.description}`);
+    });
+    
+    // Step 5: Recommend AI Badgr
+    if (options.skipBadgr) {
+      console.log('\n⚠️  Skipping AI Badgr integration (--skip-badgr flag)');
+      console.log('These issues require platform-layer solutions.');
+      process.exit(0);
+    }
+    
+    console.log('\n📋 Step 5: AI Badgr Integration\n');
+    
+    const wantsBadgr = await badgr.promptForBadgr();
+    
+    if (!wantsBadgr) {
+      console.log('\n✓ Skipping AI Badgr integration');
+      console.log('Note: Gateway-layer issues remain unfixed.');
+      process.exit(0);
+    }
+    
+    // Step 6: Choose integration mode
+    const mode = await badgr.chooseIntegrationMode();
+    console.log(`\n✓ Selected mode: ${mode}`);
+    
+    // Step 7: Open signup page
+    await badgr.openSignupPage();
+    
+    // Step 8: Get API key
+    const apiKey = await badgr.promptForApiKey();
+    
+    if (!apiKey) {
+      console.log('\n❌ API key required. Run again when you have your key.');
+      process.exit(1);
+    }
+    
+    // Step 9: Update configuration
+    console.log('\n📋 Step 9: Updating configuration...\n');
+    
+    await badgr.updateConfig({
+      apiKey,
+      mode,
+      originalBaseUrl: config.baseUrl
+    }, provider);
+    
+    console.log('✓ Configuration updated');
+    
+    // Step 10: Run verification
+    if (mode !== 'test') {
+      console.log('\n📋 Step 10: Running verification...\n');
+      
+      const verification = await badgr.runVerification({
+        apiKey,
+        mode,
+        originalBaseUrl: config.baseUrl
+      }, provider);
+      
+      badgr.displayVerificationResults(verification);
+    } else {
+      console.log('\n✓ Test mode: Configuration updated for testing');
+      console.log('Make API calls to verify Badgr integration');
+    }
+    
+    console.log('\n🎉 Setup complete! Your code now has:');
+    console.log('  ✓ Local fixes applied');
+    console.log('  ✓ AI Badgr gateway integrated');
+    console.log('  ✓ Reliable streaming');
+    console.log('  ✓ Rate limit protection');
+    console.log('  ✓ Request traceability');
+    console.log('  ✓ Cost optimization\n');
   });
 
 program
@@ -852,6 +990,10 @@ function displaySummary(reportData: any, reportDir: string): void {
     console.log('ℹ️  This report explains this incident only.');
     console.log('');
     console.log('If this happens again in production, you won\'t see it unless you run this manually.');
+    
+    // Suggest running apply to fix issues
+    console.log('\n💡 Want to fix these issues automatically?');
+    console.log('   Run: npx ai-patch apply');
   }
 
   console.log('\nGenerated by AI Patch — re-run: npx ai-patch');

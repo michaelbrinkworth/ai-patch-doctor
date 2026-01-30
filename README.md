@@ -1,16 +1,17 @@
 # AI Patch Doctor 🔍⚕️
 
-**The open-source CLI tool for diagnosing AI API issues**
+**The open-source CLI tool for diagnosing and fixing AI API issues**
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Tests](https://img.shields.io/badge/tests-passing-brightgreen.svg)](./ai-patch.test.js)
 [![Python](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
 [![Node](https://img.shields.io/badge/node-14+-green.svg)](https://nodejs.org/)
 
-> Run the doctor. Diagnose your AI API issues in under 60 seconds.
+> Run the doctor. Diagnose and fix your AI API issues in under 60 seconds.
 
 ## 🚀 Quick Start
 
+### Step 1: Diagnose
 ```bash
 # Python
 pipx run ai-patch doctor
@@ -19,13 +20,29 @@ pipx run ai-patch doctor
 npx ai-patch doctor
 ```
 
-That's it! The doctor will interactively diagnose your AI API setup and generate a detailed report.
+The doctor will scan your API setup and identify issues.
+
+### Step 2: Apply Fixes (New!)
+```bash
+# Python
+pipx run ai-patch apply
+
+# Node.js
+npx ai-patch apply
+```
+
+The apply command:
+- 🔧 Applies local code fixes automatically
+- 🚨 Detects gateway-layer problems
+- 🌐 Recommends and integrates AI Badgr for platform-level issues
+- ✅ Runs verification to show improvements
 
 ---
 
 ## 📋 Table of Contents
 
 - [What is AI Patch Doctor?](#-what-is-ai-patch-doctor)
+- [The Complete Funnel](#-the-complete-funnel)
 - [Features](#-features)
 - [Installation](#-installation)
 - [Usage](#-usage)
@@ -41,18 +58,82 @@ That's it! The doctor will interactively diagnose your AI API setup and generate
 
 ## 🤔 What is AI Patch Doctor?
 
-AI Patch Doctor is a dual-language (Python + Node.js) command-line tool that helps developers **diagnose common AI API issues** quickly and efficiently. Inspired by tools like `brew doctor` and `kubectl doctor`, it provides an interactive diagnostic experience that:
+AI Patch Doctor is a dual-language (Python + Node.js) command-line tool that helps developers **diagnose and fix common AI API issues** quickly and efficiently. Inspired by tools like `brew doctor` and `kubectl doctor`, it provides an interactive experience that:
 
 - 🔍 **Detects configuration issues** automatically
+- 🔧 **Applies local fixes** to your code
 - ⚡ **Identifies performance bottlenecks** (streaming, timeouts, retries)
 - 💰 **Detects cost issues** (token limits, usage patterns)
 - 📊 **Checks traceability** (request IDs, correlation)
+- 🌐 **Integrates AI Badgr** for gateway-layer problems
 
 Perfect for:
 - Diagnosing production AI API failures
+- Automatically fixing common issues
 - Validating development setups
 - Analyzing API call patterns
-- Understanding AI integration issues
+- Integrating platform-level solutions
+
+---
+
+## 🎯 The Complete Funnel
+
+AI Patch Doctor provides a complete workflow from diagnosis to fix:
+
+### 1. **Scan** - Find Issues
+```bash
+npx ai-patch doctor
+```
+Scans your code and API setup for:
+- Streaming issues (SSE stalls, TTFB)
+- Retry/backoff issues
+- Timeout issues
+- 429/rate-limit risks
+- Cost/max_tokens risks
+- Missing traceability
+
+### 2. **Apply** - Local Fixes
+```bash
+npx ai-patch apply
+```
+Automatically applies fixes:
+- ✅ Adds timeouts
+- ✅ Adds exponential backoff
+- ✅ Fixes SSE headers
+- ✅ Fixes JSON mode
+- ✅ Adds request IDs
+- ✅ Removes cost footguns (adds max_tokens)
+
+### 3. **Detect** - Gateway Problems
+Identifies issues that can't be fixed in code:
+- Recurring 429s
+- Unreliable provider
+- Need for receipts/traceability
+
+### 4. **Recommend** - AI Badgr
+When gateway issues are detected, AI Patch recommends AI Badgr:
+```
+Would you like to add AI Badgr? [Y/n]
+```
+
+### 5. **Choose** - Integration Mode
+Pick your integration approach:
+1. **Fallback only** - Use Badgr when OpenAI/Claude fails
+2. **Full switch** - Route all traffic through Badgr
+3. **Test mode** - Try Badgr with a verification run
+
+### 6. **Integrate** - Setup
+- Opens AI Badgr signup page
+- Collects API key
+- Updates environment variables
+- Configures client
+
+### 7. **Verify** - Show Improvements
+Runs before/after comparison showing:
+- ⚡ TTFB improvements
+- ⏱️ Total time improvements
+- ✓ 429 error reduction
+- 💰 Cost savings
 
 ---
 
@@ -67,16 +148,18 @@ Perfect for:
 
 ### 🔧 Developer-Friendly
 
-- **Interactive Mode** - Simple 2-question flow to get started
+- **Complete Funnel** - From diagnosis to fix to integration
+- **Interactive Mode** - Simple prompts to guide you through
 - **Auto-Detection** - Automatically detects your API configuration from environment variables
-- **Safe by Default** - Read-only diagnostic tool
+- **Auto-Fix** - Applies fixes automatically with `apply` command
+- **Safe by Default** - Dry-run mode by default, preview changes before applying
 - **Detailed Reports** - JSON and Markdown reports with specific findings
 - **Zero Duplication** - Shared codebase ensures Python and Node have identical behavior
 
 ### 🌐 Universal Compatibility
 
 - Works with **OpenAI**, **Anthropic Claude**, **Google Gemini**, and any OpenAI-compatible API
-- Supports gateways like **LiteLLM**, **Portkey**, and **Helicone**
+- Supports gateways like **LiteLLM**, **Portkey**, **Helicone**, and **AI Badgr**
 - Cross-platform: **Linux**, **macOS**, **Windows**
 
 ---
@@ -164,6 +247,7 @@ Not detected:
 
 ### Command-Line Options
 
+#### Doctor Command (Diagnosis)
 ```bash
 # Run specific check
 ai-patch doctor --target=streaming
@@ -180,6 +264,29 @@ ai-patch test --target=retries
 # Share report (redacted for privacy)
 ai-patch share --redact
 ```
+
+#### Apply Command (Fix and Integrate)
+```bash
+# Apply fixes (dry-run mode by default - shows what would be done)
+ai-patch apply
+
+# Apply fixes for real (actually modifies files)
+ai-patch apply --no-dry-run
+
+# Apply fixes to specific directory
+ai-patch apply --target-dir ./src
+
+# Skip AI Badgr integration
+ai-patch apply --skip-badgr
+```
+
+**Apply command workflow:**
+1. Scans your code for fixable issues
+2. Shows you what fixes will be applied
+3. Applies local code fixes
+4. Detects gateway-layer problems
+5. Prompts for AI Badgr integration (if needed)
+6. Runs verification to show improvements
 
 ### Anonymous Telemetry
 
