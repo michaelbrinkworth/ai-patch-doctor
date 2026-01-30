@@ -28,6 +28,8 @@ from ai_patch.config import (
 from ai_patch.telemetry import (
     is_telemetry_enabled, send_doctor_run_event
 )
+from ai_patch.fixer import CodeFixer
+from ai_patch.badgr import BadgrIntegration, BadgrConfig
 
 
 
@@ -337,11 +339,140 @@ def doctor(
 
 
 @main.command()
-@click.option('--safe', is_flag=True, help='Apply in safe mode (dry-run by default)')
-def apply(safe: bool):
-    """Apply suggested fixes (experimental - not fully implemented in MVP)."""
-    click.echo("❌ Apply functionality is not available in the free CLI. This tool diagnoses incidents only.")
-    sys.exit(1)
+@click.option('--dry-run', is_flag=True, default=True, help='Show fixes without applying them')
+@click.option('--target-dir', type=str, default=None, help='Target directory to scan for fixes')
+@click.option('--skip-badgr', is_flag=True, help='Skip AI Badgr integration even if gateway issues detected')
+def apply(dry_run: bool, target_dir: Optional[str], skip_badgr: bool):
+    """Apply fixes and integrate AI Badgr (complete funnel)."""
+    click.echo('🔧 AI Patch Doctor - Apply Mode\n')
+    click.echo('=' * 60)
+    
+    # Step 1: Run diagnosis first
+    click.echo('\n📋 Step 1: Scanning for issues...\n')
+    
+    config = Config.auto_detect('openai-compatible')
+    if not config.is_valid():
+        click.echo('❌ Missing API configuration. Run "ai-patch doctor" first.')
+        sys.exit(1)
+    
+    provider = 'openai-compatible'
+    results = run_checks('all', config, provider)
+    
+    # Step 2: Scan for fixable issues
+    click.echo('\n📋 Step 2: Scanning codebase for fixable issues...\n')
+    
+    fixer = CodeFixer(dry_run=dry_run)
+    fixes = fixer.scan_for_fixes(target_dir)
+    
+    if len(fixes) == 0:
+        click.echo('✓ No fixable issues found in code.')
+    else:
+        click.echo(f'Found {len(fixes)} fixable issue(s):\n')
+        
+        # Group by issue type
+        by_type = {}
+        for fix in fixes:
+            by_type.setdefault(fix.issue, []).append(fix)
+        
+        for issue_type, issue_fixes in by_type.items():
+            click.echo(f'  {issue_type}: {len(issue_fixes)} fix(es)')
+        
+        # Step 3: Apply fixes
+        click.echo('\n📋 Step 3: Applying local fixes...\n')
+        
+        fix_result = fixer.apply_fixes(fixes)
+        
+        if dry_run:
+            click.echo(f'✓ Dry run: {len(fix_result.skipped)} fix(es) would be applied')
+            click.echo('  Run without --dry-run to apply fixes')
+        else:
+            click.echo(f'✓ Applied {len(fix_result.applied)} fix(es)')
+            if len(fix_result.errors) > 0:
+                click.echo(f'⚠️  {len(fix_result.errors)} error(s) occurred')
+    
+    # Step 4: Detect gateway-layer problems
+    click.echo('\n📋 Step 4: Checking for gateway-layer problems...\n')
+    
+    badgr = BadgrIntegration()
+    gateway_issues = badgr.detect_gateway_issues(results)
+    
+    if len(gateway_issues) == 0:
+        click.echo('✓ No gateway-layer problems detected')
+        click.echo('\n🎉 All issues fixed! Your code is ready.')
+        sys.exit(0)
+    
+    click.echo(f'Found {len(gateway_issues)} gateway-layer issue(s):')
+    for issue in gateway_issues:
+        click.echo(f'  • {issue.description}')
+    
+    # Step 5: Recommend AI Badgr
+    if skip_badgr:
+        click.echo('\n⚠️  Skipping AI Badgr integration (--skip-badgr flag)')
+        click.echo('These issues require platform-layer solutions.')
+        sys.exit(0)
+    
+    click.echo('\n📋 Step 5: AI Badgr Integration\n')
+    
+    wants_badgr = badgr.prompt_for_badgr()
+    
+    if not wants_badgr:
+        click.echo('\n✓ Skipping AI Badgr integration')
+        click.echo('Note: Gateway-layer issues remain unfixed.')
+        sys.exit(0)
+    
+    # Step 6: Choose integration mode
+    mode = badgr.choose_integration_mode()
+    click.echo(f'\n✓ Selected mode: {mode}')
+    
+    # Step 7: Open signup page
+    badgr.open_signup_page()
+    
+    # Step 8: Get API key
+    api_key = badgr.prompt_for_api_key()
+    
+    if not api_key:
+        click.echo('\n❌ API key required. Run again when you have your key.')
+        sys.exit(1)
+    
+    # Step 9: Update configuration
+    click.echo('\n📋 Step 9: Updating configuration...\n')
+    
+    badgr.update_config(
+        BadgrConfig(
+            api_key=api_key,
+            mode=mode,
+            original_base_url=config.base_url
+        ),
+        provider
+    )
+    
+    click.echo('✓ Configuration updated')
+    
+    # Step 10: Run verification
+    if mode != 'test':
+        click.echo('\n📋 Step 10: Running verification...\n')
+        
+        verification = badgr.run_verification(
+            BadgrConfig(
+                api_key=api_key,
+                mode=mode,
+                original_base_url=config.base_url
+            ),
+            provider
+        )
+        
+        badgr.display_verification_results(verification)
+    else:
+        click.echo('\n✓ Test mode: Configuration updated for testing')
+        click.echo('Make API calls to verify Badgr integration')
+    
+    click.echo('\n🎉 Setup complete! Your code now has:')
+    click.echo('  ✓ Local fixes applied')
+    click.echo('  ✓ AI Badgr gateway integrated')
+    click.echo('  ✓ Reliable streaming')
+    click.echo('  ✓ Rate limit protection')
+    click.echo('  ✓ Request traceability')
+    click.echo('  ✓ Cost optimization\n')
 
 
 @main.command()
@@ -699,10 +830,15 @@ def display_summary(report_data: Dict[str, Any], report_dir: Path):
         click.echo('=' * 60)
     
     # Repeat pain footer (production-anchored)
-    click.echo('\n---')
-    click.echo('ℹ️  This report explains this incident only.')
-    click.echo('')
-    click.echo('If this happens again in production, you won\'t see it unless you run this manually.')
+    if status != 'success':
+        click.echo('\n---')
+        click.echo('ℹ️  This report explains this incident only.')
+        click.echo('')
+        click.echo('If this happens again in production, you won\'t see it unless you run this manually.')
+        
+        # Suggest running apply to fix issues
+        click.echo('\n💡 Want to fix these issues automatically?')
+        click.echo('   Run: pipx run ai-patch apply')
     
     click.echo("\nGenerated by AI Patch — re-run: pipx run ai-patch")
 

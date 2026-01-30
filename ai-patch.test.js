@@ -299,9 +299,8 @@ describe('AI Patch Doctor - Feature Tests', () => {
     // Check that apply command exists
     expect(content).toContain('def apply');
     
-    // Check that it shows the error message
-    expect(content).toContain('Apply functionality is not available in the free CLI');
-    expect(content).toContain('This tool diagnoses incidents only');
+    // Check that it has the new funnel functionality
+    expect(content).toContain('Apply fixes and integrate AI Badgr (complete funnel)');
   });
 
   test('Apply command is disabled in Node CLI', () => {
