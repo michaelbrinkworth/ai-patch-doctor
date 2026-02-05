@@ -101,9 +101,9 @@ export class ReportGenerator {
     // Summary
     const summary = report.summary;
     const statusEmoji: Record<string, string> = {
-      success: '✅',
-      warning: '⚠️',
-      error: '❌',
+      success: '',
+      warning: '',
+      error: '',
     };
 
     lines.push('## Summary');
@@ -179,7 +179,7 @@ export class ReportGenerator {
     // Footer with conditional Badgr
     lines.push('---');
     lines.push('');
-    lines.push(`📊 Report: ./ai-patch-reports/latest/report.md`);
+    lines.push(` Report: ./ai-patch-reports/latest/report.md`);
     lines.push('');
     
     // Badgr messaging - only when status != success and relevant items exist
