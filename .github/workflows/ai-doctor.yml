@@ -29,9 +29,18 @@ jobs:
             ${{ runner.os }}-npm-
 
       - name: Run AI Patch Doctor (all checks)
-        run: npx -y ai-patch doctor --target=all --share
+        run: npx -y ai-patch doctor --target=all --share --ci --no-telemetry
+
+      - name: Display report in logs
+        if: always()
+        run: |
+          if [ -f report.md ]; then
+            echo "## AI Patch Doctor Report"
+            cat report.md
+          fi
 
       - name: Upload report artifact
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: ai-doctor-report
