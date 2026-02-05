@@ -15,6 +15,9 @@ on:
           - python
           - node
 
+permissions:
+  contents: read
+
 jobs:
   publish-python:
     name: Publish Python Package to PyPI
