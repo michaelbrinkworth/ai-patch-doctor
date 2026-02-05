@@ -36,6 +36,8 @@ jobs:
           if [ -f report.md ]; then
             echo "## AI Patch Doctor Report"
             cat report.md
+          else
+            echo "⚠️ No report.md generated - doctor command may have failed or exited early"
           fi
 
       - name: Upload report artifact
