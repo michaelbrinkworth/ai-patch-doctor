@@ -11,29 +11,39 @@
 
 ## 🚀 Getting Started
 
-### Option A: Let It Fix Everything (Recommended)
+### The Main Flow (Recommended)
 
 ```bash
 # JavaScript/TypeScript projects
-npx ai-patch doctor --fix
-
-# Python projects  
-pipx run ai-patch doctor --fix
-```
-
-**The workflow:** Examines every source file → Identifies integration weaknesses → Rewrites vulnerable code → Validates changes
-
-### Option B: Run Health Checks Only
-
-```bash
-# Test your live API connections
 npx ai-patch doctor
 
-# or
+# Python projects  
 pipx run ai-patch doctor
 ```
 
-This performs actual API calls to measure performance and detect configuration problems.
+**What happens:** 
+1. Scans your codebase for AI API integration issues
+2. Shows you what it found (missing timeouts, broken retries, etc.)
+3. Asks what you want to do:
+   - Fix safe code issues automatically
+   - Fix everything (includes setting up gateway protection)
+   - Just show me the report and exit
+
+This is the complete flow that handles everything interactively.
+
+### For CI/CD or Report-Only
+
+When you need non-interactive mode (for automation):
+
+```bash
+npx ai-patch doctor --ci    # Scans and reports, no prompts
+```
+
+Or preview fixes without applying them:
+
+```bash
+npx ai-patch doctor --fix --dry-run
+```
 
 ---
 
@@ -55,7 +65,7 @@ This performs actual API calls to measure performance and detect configuration p
 
 ## 🤔 What Does This Tool Do?
 
-**Think of it as a specialized linter that can also fix the problems it finds.**
+**Think of it as an AI API code health checker with automatic repair.**
 
 Most developers integrating OpenAI, Claude, or Gemini APIs make the same preventable mistakes:
 - Forget to set timeouts (leading to hanging requests)
@@ -63,15 +73,23 @@ Most developers integrating OpenAI, Claude, or Gemini APIs make the same prevent
 - Skip token limits (hello surprise bills!)
 - Don't track requests (debugging becomes impossible)
 
-This tool has two distinct operating modes:
+### The Default Flow (just run `ai-patch doctor`)
 
-### Mode 1: Static File Analysis (the --fix flag)
-Reads your `.js`, `.ts`, `.py` files looking for problematic API call patterns. When it finds issues, it can rewrite just those specific lines with battle-tested alternatives. No API calls made, no credentials needed.
+When you run the tool without flags, it:
+1. **Scans** your codebase for API integration problems
+2. **Shows** you what it found
+3. **Asks** what you want to do - you choose whether to:
+   - Fix safe issues automatically
+   - Set up complete protection (code + gateway)
+   - Just get a report
 
-### Mode 2: Live Connection Testing (default behavior)
-Actually calls your configured AI provider APIs to measure streaming performance, retry behavior, and error handling. Produces diagnostic reports showing exactly what's working and what isn't.
+### Other Modes
 
-**Supported scenarios:**
+- **`--fix` flag**: Skips the questions and auto-fixes everything it can
+- **`--ci` flag**: Non-interactive mode for automation/CI pipelines
+- **`--dry-run` with `--fix`**: Shows what would be fixed without changing files
+
+**Use cases:**
 - Production incidents (rate limits, timeouts, cost spikes)
 - Pre-deployment hardening (find bugs before they hit prod)
 - Code review automation (integrate into CI/CD)
@@ -160,56 +178,52 @@ npm run build
 
 ---
 
-## 💻 Using This Thing
+## 💻 Usage
 
 > 📚 **More examples:** Check out [EXAMPLES.md](./EXAMPLES.md)
 
-### "Fix my code automatically"
+### The Complete Flow (Just Run It)
 
-You have AI API calls scattered across your codebase. Some are probably missing timeouts. Maybe retry logic is broken. Token limits? Probably forgot those too.
+```bash
+npx ai-patch doctor
+```
 
-Run this:
+This is the main way to use the tool. Here's what happens:
+
+1. **Scans your code** - Looks through JS/TS/Python files for API integration issues
+2. **Shows what it found** - Lists problems like missing timeouts, broken retries, no token limits
+3. **Asks you what to do:**
+   - Option 1: Fix safe code issues automatically
+   - Option 2: Fix everything (code + set up gateway protection)  
+   - Option 3: Just show me the report and exit
+
+You're in control. The tool finds the problems, you choose the solution.
+
+### Automation Modes
+
+**Auto-fix everything** (skips the questions):
 ```bash
 ai-patch doctor --fix
 ```
 
-What happens:
-- Scans your JS/TS/Python files
-- Finds problematic API calls
-- Rewrites them with better patterns
-- Tests that nothing broke
+**Report-only for CI/CD** (no interaction, no changes):
+```bash
+ai-patch doctor --ci
+```
 
-See it first without changing anything:
+**Preview mode** (see what would be fixed):
 ```bash
 ai-patch doctor --fix --dry-run
 ```
 
-### "Test my live API connection"
-
-Something's wrong with your production API calls. Maybe streaming is slow. Maybe you're getting rate limited. You need to know what's actually happening.
-
-Run this:
-```bash
-ai-patch doctor
-```
-
-It'll ask you 2 questions, then actually call your API and measure what's happening.
-
-### CI/CD Integration
+### Available Flags
 
 ```bash
-ai-patch doctor --ci           # Just check
-ai-patch doctor --fix --ci     # Check and fix
-```
-
-### Other Options
-
-```bash
---fix              # Change files (the main feature)
---dry-run          # Show what would change
---interactive      # Force question mode
---target=streaming # Only check streaming
---no-telemetry     # No anonymous stats
+--fix              # Auto-fix mode (no interaction)
+--ci               # CI mode (report only, no prompts)
+--dry-run          # Preview changes without applying
+--target=TYPE      # Only check specific area (streaming, retries, cost, trace, all)
+--no-telemetry     # Skip anonymous usage stats
 ```
 
 ### Anonymous Telemetry

@@ -1,41 +1,49 @@
 # AI Patch Doctor 🔍⚕️
 
-**Catches AI API bugs before they catch you**
+**Your AI integration code reviewer and fixer**
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Node](https://img.shields.io/badge/node-16+-green.svg)](https://nodejs.org/)
 
-This tool does two things: (1) reads your source code to find API integration mistakes, (2) rewrites the bad parts for you.
+Examines your JavaScript/TypeScript files for common AI API mistakes. When it finds issues (hanging calls, naive retries, runaway costs), you decide what happens next.
 
-## For npm users
+## How to use it
 
 ```bash
-npx ai-patch doctor --fix
+# Run this - it'll scan and ask what you want to do
+npx ai-patch doctor
 ```
 
-That command scans your repo and patches everything it finds wrong.
+The flow:
+- Walks through your source files
+- Lists every problem it discovers
+- Gives you 3 choices: auto-fix safe stuff, setup complete protection, or just get the report
 
-## The problems it solves
+## Install permanently
 
-Your OpenAI/Anthropic/Gemini calls probably have issues:
+```bash
+npm install -g ai-patch
+```
 
-- Calls hang when APIs are slow (no timeout)
-- Retries make rate-limiting worse (wrong algorithm)  
-- Bills are unpredictable (no max_tokens)
-- Can't debug failures (no request tracking)
+## Commands
 
-This fixes all of that by rewriting your code.
+```bash
+npx ai-patch doctor           # Main interactive flow
+npx ai-patch doctor --fix     # Skip questions, just fix
+npx ai-patch doctor --ci      # Generate report only
+```
 
-## How to use
+## Common fixes
 
-Want everything fixed? Run with `--fix`
-Want to see plans first? Add `--dry-run`
-Want it in CI/CD? Add `--ci`
+- Adds timeout guards to prevent hangs
+- Implements exponential backoff for retries
+- Sets max_tokens to control costs
+- Generates request IDs for debugging
 
-See the main repo for full docs: [github.com/michaelaccount2/ai-patch-doctor](https://github.com/michaelaccount2/ai-patch-doctor)
+Full documentation: [github.com/michaelaccount2/ai-patch-doctor](https://github.com/michaelaccount2/ai-patch-doctor)
 
 MIT License
 
 ---
 
-**Better AI code, zero effort.**
+**Healthier AI code through guided repairs.**
