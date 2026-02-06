@@ -10,12 +10,12 @@ from pathlib import Path
 
 def validate_report_schema():
     """Validate that report schema exists and is valid JSON"""
-    print("🔍 Validating report schema...")
+    print(" Validating report schema...")
     
     schema_path = Path(__file__).parent / "shared" / "report-schema.json"
     
     if not schema_path.exists():
-        print(f"❌ Schema not found at {schema_path}")
+        print(f" Schema not found at {schema_path}")
         return False
     
     try:
@@ -24,19 +24,19 @@ def validate_report_schema():
         
         # Check required fields (flexible - just need valid JSON with some structure)
         if 'properties' not in schema and 'type' not in schema:
-            print(f"❌ Schema appears incomplete")
+            print(f" Schema appears incomplete")
             return False
         
-        print("✅ Report schema is valid")
+        print(" Report schema is valid")
         return True
     except json.JSONDecodeError as e:
-        print(f"❌ Invalid JSON in schema: {e}")
+        print(f" Invalid JSON in schema: {e}")
         return False
 
 
 def validate_python_structure():
     """Validate Python package structure"""
-    print("\n🔍 Validating Python package structure...")
+    print("\n Validating Python package structure...")
     
     python_dir = Path(__file__).parent / "python"
     
@@ -62,18 +62,18 @@ def validate_python_structure():
             missing.append(file_path)
     
     if missing:
-        print(f"❌ Missing Python files:")
+        print(f" Missing Python files:")
         for f in missing:
             print(f"   - {f}")
         return False
     
-    print("✅ Python package structure is valid")
+    print(" Python package structure is valid")
     return True
 
 
 def validate_node_structure():
     """Validate Node package structure"""
-    print("\n🔍 Validating Node package structure...")
+    print("\n Validating Node package structure...")
     
     node_dir = Path(__file__).parent / "node"
     
@@ -96,18 +96,18 @@ def validate_node_structure():
             missing.append(file_path)
     
     if missing:
-        print(f"❌ Missing Node files:")
+        print(f" Missing Node files:")
         for f in missing:
             print(f"   - {f}")
         return False
     
-    print("✅ Node package structure is valid")
+    print(" Node package structure is valid")
     return True
 
 
 def check_command_consistency():
     """Check that both CLIs have the same commands"""
-    print("\n🔍 Checking command consistency...")
+    print("\n Checking command consistency...")
     
     expected_commands = [
         'doctor',
@@ -129,7 +129,7 @@ def check_command_consistency():
             if f"def {cmd}(" not in content:
                 python_missing.append(cmd)
     else:
-        print("⚠️  Python CLI not found")
+        print("  Python CLI not found")
     
     # Check Node CLI
     node_cli = Path(__file__).parent / "node" / "src" / "cli.ts"
@@ -139,17 +139,17 @@ def check_command_consistency():
             if f".command('{cmd}'" not in content and f'.command("{cmd}"' not in content and f"command '{cmd}'" not in content:
                 node_missing.append(cmd)
     else:
-        print("⚠️  Node CLI not found")
+        print("  Node CLI not found")
     
     if python_missing:
-        print(f"⚠️  Python CLI missing commands: {', '.join(python_missing)}")
+        print(f"  Python CLI missing commands: {', '.join(python_missing)}")
     if node_missing:
-        print(f"⚠️  Node CLI missing commands: {', '.join(node_missing)}")
+        print(f"  Node CLI missing commands: {', '.join(node_missing)}")
     
     if not python_missing and not node_missing:
-        print("✅ All expected commands found in both CLIs")
+        print(" All expected commands found in both CLIs")
     
-    print("✅ Command consistency check complete")
+    print(" Command consistency check complete")
     return True
 
 
@@ -172,7 +172,7 @@ def main():
             result = check()
             results.append(result)
         except Exception as e:
-            print(f"❌ Check failed with error: {e}")
+            print(f" Check failed with error: {e}")
             results.append(False)
     
     print("\n" + "=" * 80)
@@ -180,11 +180,11 @@ def main():
     total = len(results)
     
     if passed == total:
-        print(f"✅ All {total} validation checks passed!")
+        print(f" All {total} validation checks passed!")
         print("=" * 80)
         return 0
     else:
-        print(f"⚠️  {passed}/{total} validation checks passed")
+        print(f"  {passed}/{total} validation checks passed")
         print("=" * 80)
         return 1
 

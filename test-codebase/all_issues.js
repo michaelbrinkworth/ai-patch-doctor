@@ -51,7 +51,7 @@ async function problematicApiCall() {
         }
       }
       
-      console.log('\n✅ Success!');
+      console.log('\n Success!');
       return;
       
     } catch (error) {
@@ -73,7 +73,7 @@ async function problematicApiCall() {
 }
 
 if (require.main === module) {
-  console.log('⚠️  This code has multiple issues!');
+  console.log('  This code has multiple issues!');
   console.log('Run: pipx run ai-patch-doctor doctor');
   console.log('Or: npx ai-patch doctor');
   console.log('\nSelect \'all\' or specific checks to see issues detected.');

@@ -37,7 +37,7 @@ def chat_without_traceability():
     )
     
     print(f"Response: {message.content[0].text}")
-    print("⚠️  No traceability - can't track or deduplicate requests!")
+    print("  No traceability - can't track or deduplicate requests!")
 
 def duplicate_requests():
     """Example of code that could create duplicate requests with Claude."""
@@ -62,11 +62,11 @@ def duplicate_requests():
     
     print(f"Response 1: {message1.content[0].text}")
     print(f"Response 2: {message2.content[0].text}")
-    print("⚠️  Duplicate requests - charged twice for same work!")
+    print("  Duplicate requests - charged twice for same work!")
 
 if __name__ == "__main__":
     print("Running Claude traceability issue examples...")
     # Uncomment to test (will make API calls):
     # chat_without_traceability()
     # duplicate_requests()
-    print("⚠️  Code has traceability issues - check with AI Patch Doctor!")
+    print("  Code has traceability issues - check with AI Patch Doctor!")

@@ -29,7 +29,7 @@ async function chatWithCostIssues() {
   });
   
   console.log(`Response length: ${response.choices[0].message.content.length} chars`);
-  console.log('⚠️  No token limit - could be very expensive!');
+  console.log('  No token limit - could be very expensive!');
 }
 
 async function potentialRunawayLoop() {
@@ -52,5 +52,5 @@ if (require.main === module) {
   // Uncomment to test (will make API calls):
   // chatWithCostIssues().catch(console.error);
   // potentialRunawayLoop().catch(console.error);
-  console.log('⚠️  Code has cost issues - check with AI Patch Doctor!');
+  console.log('  Code has cost issues - check with AI Patch Doctor!');
 }

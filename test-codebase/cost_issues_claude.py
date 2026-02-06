@@ -35,7 +35,7 @@ def chat_with_cost_issues():
     )
     
     print(f"Response length: {len(message.content[0].text)} chars")
-    print("⚠️  High token limit - could be very expensive!")
+    print("  High token limit - could be very expensive!")
 
 def potential_runaway_loop():
     """Example of code that could cause runaway costs with Claude."""
@@ -56,4 +56,4 @@ if __name__ == "__main__":
     # Uncomment to test (will make API calls):
     # chat_with_cost_issues()
     # potential_runaway_loop()
-    print("⚠️  Code has cost issues - check with AI Patch Doctor!")
+    print("  Code has cost issues - check with AI Patch Doctor!")

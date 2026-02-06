@@ -52,7 +52,7 @@ def problematic_api_call():
                 if chunk.choices[0].delta.content:
                     print(chunk.choices[0].delta.content, end='', flush=True)
             
-            print("\n✅ Success!")
+            print("\n Success!")
             return
             
         except openai.RateLimitError:
@@ -69,7 +69,7 @@ def problematic_api_call():
                 raise
 
 if __name__ == "__main__":
-    print("⚠️  This code has multiple issues!")
+    print("  This code has multiple issues!")
     print("Run: pipx run ai-patch-doctor doctor")
     print("Or: npx ai-patch doctor")
     print("\nSelect 'all' or specific checks to see issues detected.")

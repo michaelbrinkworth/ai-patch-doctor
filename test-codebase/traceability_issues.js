@@ -29,7 +29,7 @@ async function chatWithoutTraceability() {
   });
   
   console.log(`Response: ${response.choices[0].message.content}`);
-  console.log('⚠️  No traceability - can\'t track or deduplicate requests!');
+  console.log('  No traceability - can\'t track or deduplicate requests!');
 }
 
 async function duplicateRequests() {
@@ -51,7 +51,7 @@ async function duplicateRequests() {
   
   console.log(`Response 1: ${response1.choices[0].message.content}`);
   console.log(`Response 2: ${response2.choices[0].message.content}`);
-  console.log('⚠️  Duplicate requests - charged twice for same work!');
+  console.log('  Duplicate requests - charged twice for same work!');
 }
 
 if (require.main === module) {
@@ -59,5 +59,5 @@ if (require.main === module) {
   // Uncomment to test (will make API calls):
   // chatWithoutTraceability().catch(console.error);
   // duplicateRequests().catch(console.error);
-  console.log('⚠️  Code has traceability issues - check with AI Patch Doctor!');
+  console.log('  Code has traceability issues - check with AI Patch Doctor!');
 }

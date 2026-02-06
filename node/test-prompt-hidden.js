@@ -108,18 +108,18 @@ function promptHidden(query) {
  */
 async function testPromptHidden() {
   console.log('Testing promptHidden() function...\n');
-  console.log('⚠️  SECURITY TEST: Characters should NOT be visible when you type');
+  console.log('  SECURITY TEST: Characters should NOT be visible when you type');
   console.log('Type a test password and press Enter:\n');
   
   try {
     const result = await promptHidden('Enter test password (hidden): ');
-    console.log(`\n✅ SUCCESS: Input captured without echo`);
+    console.log(`\n SUCCESS: Input captured without echo`);
     console.log(`   Length: ${result.length} characters`);
     console.log(`   First 3 chars: ${result.substring(0, 3)}...`);
-    console.log('\n✅ Raw mode restored successfully');
+    console.log('\n Raw mode restored successfully');
     console.log('You can type normally now to verify terminal state is restored.');
   } catch (error) {
-    console.error('❌ ERROR:', error.message);
+    console.error(' ERROR:', error.message);
     process.exit(1);
   }
 }
