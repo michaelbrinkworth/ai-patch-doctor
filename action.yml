@@ -1,5 +1,5 @@
 name: 'AI Patch Doctor'
-description: 'Zero-config CI check that detects AI API integration issues (429s, retry storms, streaming stalls, timeouts, cost explosions)'
+description: 'Zero-config scanner for AI API integration issues - detects 429s, retry storms, streaming stalls, timeouts, and cost explosions'
 author: 'Michael Brinkworth'
 
 branding:
@@ -8,7 +8,7 @@ branding:
 
 inputs:
   telemetry:
-    description: 'Enable anonymous telemetry (default: disabled)'
+    description: 'Enable telemetry (disabled by default for privacy)'
     required: false
     default: 'false'
 
@@ -24,7 +24,7 @@ runs:
       uses: actions/cache@v4
       with:
         path: ~/.npm
-        key: ${{ runner.os }}-npm-ai-patch
+        key: ${{ runner.os }}-npm-ai-doctor
         restore-keys: |
           ${{ runner.os }}-npm-
     
@@ -37,13 +37,12 @@ runs:
           npx -y ai-patch doctor --fix --no-telemetry
         fi
     
-    - name: Display report in logs
-      if: always()
+    - name: Display Report
       shell: bash
       run: |
-        if [ -f report.md ]; then
+        if [ -f "report.md" ]; then
           echo "## AI Patch Doctor Report"
           cat report.md
         else
-          echo "⚠️ No report.md generated"
+          echo "No report generated (scanning may have failed or no issues found)"
         fi
