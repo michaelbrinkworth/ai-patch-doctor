@@ -1,4 +1,11 @@
-name: AI Doctor
+# EXAMPLE WORKFLOW ONLY
+# This file demonstrates how to use the AI Patch Doctor action.
+# It's here for testing this repository itself, not part of the Action.
+# 
+# Users should copy the usage pattern to their own repositories:
+# - uses: michaelbrinkworth/ai-doctor-action@v1
+
+name: AI Doctor (Self-Test)
 
 on:
   pull_request:
