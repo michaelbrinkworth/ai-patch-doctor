@@ -1,5 +1,5 @@
 name: 'AI Patch Doctor'
-description: 'Zero-config scanner for AI API integration issues - detects 429s, retry storms, streaming stalls, timeouts, and cost explosions'
+description: 'Zero-config CI check for AI API issues: 429s, retries, streaming, timeouts, cost. No API keys needed.'
 author: 'Michael Brinkworth'
 
 branding:
