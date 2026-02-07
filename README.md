@@ -47,6 +47,30 @@ npx ai-patch doctor --fix --dry-run
 
 ---
 
+## ⚡ GitHub Action (60-second setup)
+
+Add AI Patch Doctor to your CI pipeline. Runs on every PR and push with zero config.
+
+```yaml
+name: AI Patch Doctor
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  ai-patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: michaelbrinkworth/ai-patch-doctor@v1
+```
+
+**What it does:** Scans your code for AI API integration issues (missing timeouts, broken retries, cost risks) and reports them in the Actions tab. No API keys or secrets needed.
+
+---
+
 ## 📋 Table of Contents
 
 - [What is AI Patch Doctor?](#-what-is-ai-patch-doctor)

@@ -32,9 +32,9 @@ runs:
       shell: bash
       run: |
         if [ "${{ inputs.telemetry }}" = "true" ]; then
-          npx -y ai-patch doctor --fix
+          npx -y ai-patch@latest doctor --fix
         else
-          npx -y ai-patch doctor --fix --no-telemetry
+          npx -y ai-patch@latest doctor --fix --no-telemetry
         fi
     
     - name: Display Report
